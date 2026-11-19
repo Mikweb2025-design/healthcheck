@@ -10,6 +10,18 @@ Any watch that writes into Apple Health works. It was built and tested with a **
 
 ![How Health Check works](docs/img/how-it-works.svg)
 
+## Screenshots
+
+*All screenshots use a synthetic demo dataset (a fictional person, two years of generated data).*
+
+| Today | Trends | Agent |
+|---|---|---|
+| ![Today: rings, early warning, weight](docs/screenshots/01-today.png) | ![Trends with personal normal range](docs/screenshots/02-trends.png) | ![Agent: weekly targets, AI check-up, correlations](docs/screenshots/03-agent.png) |
+
+| Ask your data | Doctor report | Infographic | Phone |
+|---|---|---|---|
+| ![Ask your data chat](docs/screenshots/04-ask.png) | ![Printable doctor report](docs/screenshots/05-doctor-report.png) | ![Weekly infographic](docs/screenshots/06-infographic.png) | ![Mobile view](docs/screenshots/07-mobile.png) |
+
 ## Features
 
 - **Import that scales**: drop the weekly `Export.zip` into `/Health/Import`. A streaming parser reads a ~1 GB export in

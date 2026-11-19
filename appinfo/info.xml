@@ -33,6 +33,12 @@ Data stays per user. Administrators cannot see other people's data in the app.]]
     <website>https://github.com/Mikweb2025-design/healthcheck</website>
     <bugs>https://github.com/Mikweb2025-design/healthcheck/issues</bugs>
     <repository type="git">https://github.com/Mikweb2025-design/healthcheck.git</repository>
+    <screenshot>https://github.com/Mikweb2025-design/healthcheck/raw/main/docs/screenshots/01-today.png</screenshot>
+    <screenshot>https://github.com/Mikweb2025-design/healthcheck/raw/main/docs/screenshots/03-agent.png</screenshot>
+    <screenshot>https://github.com/Mikweb2025-design/healthcheck/raw/main/docs/screenshots/02-trends.png</screenshot>
+    <screenshot>https://github.com/Mikweb2025-design/healthcheck/raw/main/docs/screenshots/06-infographic.png</screenshot>
+    <screenshot>https://github.com/Mikweb2025-design/healthcheck/raw/main/docs/screenshots/05-doctor-report.png</screenshot>
+    <screenshot>https://github.com/Mikweb2025-design/healthcheck/raw/main/docs/screenshots/07-mobile.png</screenshot>
     <dependencies>
         <php min-version="8.1"/>
         <nextcloud min-version="31" max-version="35"/>
