@@ -56,6 +56,12 @@ class Settings {
 		return Messages::lang((string)$this->config->getUserValue($uid, 'core', 'lang', (string)$this->config->getSystemValue('default_language', 'en')));
 	}
 
+	/** language of the doctor report (own setting, else the app language) */
+	public function reportLang(string $uid): string {
+		$own = $this->get($uid, 'report_lang');
+		return in_array($own, Messages::LANGS, true) ? $own : $this->lang($uid);
+	}
+
 	public function tz(string $uid): string {
 		$tz = (string)$this->config->getUserValue($uid, 'core', 'timezone', '');
 		try {
@@ -76,6 +82,8 @@ class Settings {
 		return [
 			'lang' => $this->get($uid, 'lang'),
 			'effectiveLang' => $this->lang($uid),
+			'reportLang' => $this->get($uid, 'report_lang'),
+			'effectiveReportLang' => $this->reportLang($uid),
 			'calendarSync' => $this->get($uid, 'calendar_sync', '1') === '1',
 			'calendarDaily' => $this->get($uid, 'calendar_daily', '0') === '1',
 			'webhookUrl' => $this->get($uid, 'webhook_url'),
@@ -94,6 +102,10 @@ class Settings {
 		if (array_key_exists('lang', $in)) {
 			$l = (string)$in['lang'];
 			in_array($l, ['', 'de', 'en', 'it'], true) ? $this->set($uid, 'lang', $l) : $bad[] = 'lang';
+		}
+		if (array_key_exists('reportLang', $in)) {
+			$l = (string)$in['reportLang'];
+			in_array($l, ['', 'de', 'en', 'it'], true) ? $this->set($uid, 'report_lang', $l) : $bad[] = 'reportLang';
 		}
 		foreach (['calendarSync' => 'calendar_sync', 'calendarDaily' => 'calendar_daily', 'notifyImport' => 'notify_import', 'nudges' => 'nudges'] as $k => $key) {
 			if (array_key_exists($k, $in)) {

@@ -397,6 +397,8 @@
     var check = function (name, label, on) { return h('label', { class: 'hc-check' }, [h('input', { type: 'checkbox', name: name, checked: on ? true : null }), h('span', { text: label })]); };
     var langSel = h('select', { name: 'lang' }, [['', t('lang_auto')], ['de', 'Deutsch'], ['en', 'English'], ['it', 'Italiano']].map(function (o) { return h('option', { value: o[0], selected: se.lang === o[0] ? true : null, text: o[1] }); }));
     f.appendChild(h('label', { class: 'hc-field' }, [h('span', { text: t('set_lang') }), langSel]));
+    var repSel = h('select', { name: 'reportLang' }, [['', t('lang_same')], ['de', 'Deutsch'], ['en', 'English'], ['it', 'Italiano']].map(function (o) { return h('option', { value: o[0], selected: se.reportLang === o[0] ? true : null, text: o[1] }); }));
+    f.appendChild(h('label', { class: 'hc-field' }, [h('span', { text: t('set_report_lang') }), repSel]));
     f.appendChild(check('notifyImport', t('set_notify_import'), se.notifyImport));
     f.appendChild(check('nudges', t('set_nudges'), se.nudges));
     f.appendChild(check('calendarSync', t('set_cal'), se.calendarSync));
@@ -408,7 +410,7 @@
     f.appendChild(h('button', { type: 'submit', class: 'hc-btn hc-btn-primary', text: t('save') }));
     f.addEventListener('submit', function (e) {
       e.preventDefault();
-      HC.api('PUT', '/api/settings', { lang: langSel.value, notifyImport: f.elements.notifyImport.checked, nudges: f.elements.nudges.checked, calendarSync: f.elements.calendarSync.checked,
+      HC.api('PUT', '/api/settings', { lang: langSel.value, reportLang: repSel.value, notifyImport: f.elements.notifyImport.checked, nudges: f.elements.nudges.checked, calendarSync: f.elements.calendarSync.checked,
         calendarDaily: f.elements.calendarDaily.checked, webhookUrl: f.elements.webhookUrl.value.trim() })
         .then(function () { toast(t('saved')); root.setTimeout(function () { root.location.reload(); }, 600); }, function (er) { toast(errText(er), true); });
     });
@@ -437,9 +439,16 @@
   /* ======================================================= report ======================================================= */
   function reportPage(rootEl) {
     var days = parseInt((root.location.search.match(/days=(\d+)/) || [])[1] || '30', 10);
+    // the doctor report has its own language (setting "report language"), switchable here for printing
+    var rl = (root.location.search.match(/lang=(de|en|it)/) || [])[1] || rootEl.getAttribute('data-report-lang') || HC.i18n.lang();
+    HC.i18n.setLang(rl);
+    doc.documentElement.setAttribute('lang', rl);
+    var go = function (d, l) { root.location.search = '?days=' + d + '&lang=' + l; };
+    var langs = h('div', { class: 'hc-seg' }, ['it', 'de', 'en'].map(function (l) { return h('button', { type: 'button', class: 'hc-seg-b', 'aria-pressed': l === rl ? 'true' : 'false', text: l.toUpperCase(), onclick: function () { go(days, l); } }); }));
     var bar = h('div', { class: 'hc-noprint hc-row hc-reportbar' }, [
       h('a', { class: 'hc-btn', href: rootEl.getAttribute('data-base') + '/', text: '‹ ' + t('app') }),
-      h('select', { onchange: function (e) { root.location.search = '?days=' + e.target.value; } }, [30, 90].map(function (d) { return h('option', { value: d, selected: d === days ? true : null, text: t('range_d', { n: d }) }); })),
+      h('select', { onchange: function (e) { go(e.target.value, rl); } }, [30, 90].map(function (d) { return h('option', { value: d, selected: d === days ? true : null, text: t('range_d', { n: d }) }); })),
+      langs,
       btn(t('print'), function () { root.print(); }, 'hc-btn-primary')
     ]);
     var page = h('article', { class: 'hc-report' }, [h('p', { text: t('loading') })]);
@@ -476,7 +485,8 @@
           h('td', { class: 'hc-num', text: w.distance_m ? HC.num(w.distance_m / 1000, 1) + ' km' : '' }), h('td', { class: 'hc-num', text: w.hr_avg ? HC.num(w.hr_avg, 0) + ' bpm' : '' })]);
       }))])]));
     }
-    page.appendChild(h('section', { class: 'hc-rep-ai' }, [h('h2', { text: t('rep_ai') }), r.ai && r.ai.doctor ? h('p', { text: r.ai.doctor }) : h('p', { class: 'hc-muted', text: t('rep_ai_none') }),
+    page.appendChild(h('section', { class: 'hc-rep-ai' }, [h('h2', { text: t('rep_ai') }), r.ai && r.ai.doctor ? h('p', { lang: r.ai.doctorLang || null, text: r.ai.doctor }) : h('p', { class: 'hc-muted', text: t('rep_ai_none') }),
+      r.ai && r.ai.doctorLang && r.ai.doctorLang !== HC.i18n.lang() ? h('p', { class: 'hc-muted hc-small hc-noprint', text: t('rep_ai_lang', { l: r.ai.doctorLang.toUpperCase() }) }) : null,
       r.ai ? h('p', { class: 'hc-muted hc-small', text: t('ai_meta', { date: HC.dateTime(r.ai.createdAt), model: r.ai.model || '?', to: HC.day(r.ai.to) }) }) : null]));
     page.appendChild(h('footer', { class: 'hc-rep-foot' }, [h('p', { text: t('rep_disclaimer') }), h('p', { class: 'hc-small', text: t('rep_method') })]));
   }

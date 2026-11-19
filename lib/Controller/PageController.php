@@ -80,6 +80,7 @@ class PageController extends Controller {
 			'requesttoken' => $this->requestToken(),
 			'attrs' => [
 				'data-uid' => $uid,
+				'data-report-lang' => $uid === '' ? $lang : $this->settings->reportLang($uid),
 				'data-home' => $this->link('dashboard.dashboard.index', '/apps/dashboard/'),
 				'data-files' => $this->link('files.view.index', '/apps/files/') . '?dir=/Health/Import',
 				'data-dav' => $this->urls->getWebroot() . '/remote.php/dav/files/' . rawurlencode($uid),

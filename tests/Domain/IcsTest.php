@@ -23,6 +23,8 @@ class IcsTest extends TestCase {
 	public function testWorkoutEvent(): void {
 		$this->assertSame('🚴 Radfahren · 32,4 km · 1:12 h', Ics::workoutTitle($this->workout(), 'de'));
 		$this->assertSame('🚴 Cycling · 32.4 km · 1:12 h', Ics::workoutTitle($this->workout(), 'en'));
+		$this->assertSame('🚴 Ciclismo · 32,4 km · 1:12 h', Ics::workoutTitle($this->workout(), 'it'));
+		$this->assertTrue(md5(Ics::workout($this->workout(), 'it')) !== md5(Ics::workout($this->workout(), 'en')), 'a language change is detected as a change (etag)');
 		$ics = Ics::workout($this->workout(), 'de');
 		$this->assertStringContainsString("UID:hc-w-" . str_repeat('a', 40) . "@healthcheck\r\n", $ics);
 		$this->assertStringContainsString("DTSTART:20260309T150000Z\r\n", $ics);

@@ -113,9 +113,19 @@ class ApiController extends Controller {
 	#[NoAdminRequired]
 	public function updateSettings(): JSONResponse {
 		return $this->run(function ($uid) {
+			$before = $this->settings->lang($uid);
 			$bad = $this->settings->update($uid, $this->request->getParams());
 			if ($bad !== []) {
 				throw new \InvalidArgumentException(implode(',', $bad));
+			}
+			// calendar titles follow the app language: rewrite the events whose rendered text changed
+			if ($before !== $this->settings->lang($uid) && $this->settings->get($uid, 'calendar_sync', '1') === '1') {
+				try {
+					$this->calendar->sync($uid, $this->store->workouts($uid), $this->store->days($uid),
+						$this->settings->get($uid, 'calendar_daily', '0') === '1', $this->settings->lang($uid));
+				} catch (\Throwable $e) {
+					$this->logger->warning('Health Check calendar resync failed: ' . $e->getMessage(), ['app' => Application::APP_ID]);
+				}
 			}
 			return $this->settings->forUser($uid);
 		});

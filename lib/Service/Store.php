@@ -206,7 +206,7 @@ class Store {
 			'period_from' => $q->createNamedParameter($r['period_from'] ?? null), 'period_to' => $q->createNamedParameter($r['period_to'] ?? null),
 			'lang' => $q->createNamedParameter($r['lang'] ?? null), 'model' => $q->createNamedParameter(mb_substr((string)($r['model'] ?? ''), 0, 100)),
 			'summary' => $q->createNamedParameter($r['summary'] ?? ''), 'tips' => $q->createNamedParameter(json_encode($r['tips'] ?? [], JSON_UNESCAPED_UNICODE)),
-			'doctor' => $q->createNamedParameter($r['doctor'] ?? ''), 'plan' => $q->createNamedParameter($r['plan'] === null ? null : json_encode($r['plan'], JSON_UNESCAPED_UNICODE)),
+			'doctor' => $q->createNamedParameter($r['doctor'] ?? ''), 'doctor_lang' => $q->createNamedParameter($r['doctor_lang'] ?? null), 'plan' => $q->createNamedParameter($r['plan'] === null ? null : json_encode($r['plan'], JSON_UNESCAPED_UNICODE)),
 			'evaluation' => $q->createNamedParameter(($r['evaluation'] ?? null) === null ? null : json_encode($r['evaluation'], JSON_UNESCAPED_UNICODE)),
 			'report_path' => $q->createNamedParameter($r['report_path'] ?? null),
 		])->executeStatement();
@@ -219,7 +219,7 @@ class Store {
 		$rows = $q->executeQuery()->fetchAll();
 		return array_map(fn ($r) => [
 			'id' => (int)$r['id'], 'createdAt' => (int)$r['created_at'], 'from' => $r['period_from'], 'to' => $r['period_to'], 'lang' => $r['lang'],
-			'model' => $r['model'], 'summary' => (string)$r['summary'], 'tips' => json_decode((string)$r['tips'], true) ?: [], 'doctor' => (string)$r['doctor'],
+			'model' => $r['model'], 'summary' => (string)$r['summary'], 'tips' => json_decode((string)$r['tips'], true) ?: [], 'doctor' => (string)$r['doctor'], 'doctorLang' => $r['doctor_lang'] ?? null,
 			'plan' => $r['plan'] === null ? null : json_decode((string)$r['plan'], true), 'evaluation' => $r['evaluation'] === null ? null : json_decode((string)$r['evaluation'], true),
 			'reportPath' => $r['report_path'],
 		], $rows);

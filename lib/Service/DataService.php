@@ -83,9 +83,10 @@ class DataService {
 			'summary' => Insights::summary($rows, $workouts, $end, $days, max(91, $days)),
 			'days' => Insights::range($rows, $from, $end),
 			'workouts' => array_values(array_filter($workouts, fn ($w) => $w['day'] >= $from && $w['day'] <= $end)),
-			'ai' => $ai === null ? null : ['createdAt' => $ai['createdAt'], 'model' => $ai['model'], 'doctor' => $ai['doctor'], 'to' => $ai['to']],
+			'ai' => $ai === null ? null : ['createdAt' => $ai['createdAt'], 'model' => $ai['model'], 'doctor' => $ai['doctor'], 'doctorLang' => $ai['doctorLang'], 'to' => $ai['to']],
 			'status' => $this->status($uid),
 			'lang' => $this->settings->lang($uid),
+			'reportLang' => $this->settings->reportLang($uid),
 		];
 	}
 
@@ -110,6 +111,7 @@ class DataService {
 		return [
 			'app' => 'healthcheck', 'version' => 1,
 			'lang' => $this->settings->lang($uid),
+			'report_lang' => $this->settings->reportLang($uid),
 			'today' => $this->import->today($uid),
 			'data_status' => $this->status($uid),
 			'summary' => Insights::summary($rows, $workouts, $end, 7, 91),
@@ -148,6 +150,7 @@ class DataService {
 			'summary' => $summary,
 			'tips' => $tips,
 			'doctor' => $clean($in['doctor'] ?? '', 4000),
+			'doctor_lang' => in_array($in['doctor_lang'] ?? '', ['de', 'en', 'it'], true) ? $in['doctor_lang'] : $this->settings->reportLang($uid),
 			'plan' => Agent::sanitizePlan($in['plan'] ?? null),
 			'evaluation' => $prev === null ? null : Agent::evaluatePlan($prev['plan'], $rows, $workouts, $this->settings->tz($uid)),
 			'report_path' => $clean($in['report_path'] ?? '', 255) ?: null,

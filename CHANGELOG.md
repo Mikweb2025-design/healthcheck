@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 – 2026-11-20
+
+* Own language for the doctor report (`report_lang`, setting next to the app language); language switch IT/DE/EN on the
+  report page for printing
+* Weekly n8n report: summary, tips and plan in the app language, doctor paragraph in the doctor report language; extra
+  files `Arztbericht-YYYY-WW.<lang>.md/.html`; durations always as "h min" (formatted before the prompt, safety net after)
+* Calendar titles follow the app language: events whose text changed are rewritten (same UIDs, no duplicates)
+
 ## 0.1.0 – 2026-11-19
 
 First version.
