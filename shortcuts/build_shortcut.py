@@ -19,7 +19,7 @@ OBJ = "￼"
 TYPES = [
     ("sleep", "Sleep"), ("heart_rate", "Heart Rate"), ("resting_hr", "Resting Heart Rate"), ("spo2", "Blood Oxygen"),
     ("hrv", "Heart Rate Variability"), ("steps", "Steps"), ("distance", "Walking + Running Distance"), ("cycling", "Cycling Distance"),
-    ("active_energy", "Active Energy"), ("flights", "Flights Climbed"), ("weight", "Weight"), ("body_fat", "Body Fat Percentage"),
+    ("active_energy", "Active Calories"), ("flights", "Flights Climbed"), ("weight", "Weight"), ("body_fat", "Body Fat Percentage"),
     ("vo2max", "Cardio Fitness"),
 ]
 DETAILS = [("values", "Value"), ("units", "Unit"), ("starts", "Start Date"), ("ends", "End Date"), ("sources", "Source")]
@@ -69,8 +69,9 @@ json_items = [("v", tstring("1")), ("client", tstring("shortcut-1"))]
 for key, hk in TYPES:
     u_find = add("is.workflow.actions.filter.health.quantity", {
         "WFContentItemFilter": {"Value": {"WFActionParameterFilterPrefix": 1, "WFContentPredicateBoundedDate": False, "WFActionParameterFilterTemplates": [
-            {"Property": "Type", "Operator": 4, "Removable": False, "Values": {"Enumeration": hk}},
-            {"Property": "Start Date", "Operator": 1001, "Removable": True, "Values": {"Number": 2, "Unit": 16}},
+            {"Bounded": True, "Property": "Type", "Operator": 4, "Removable": False,
+             "Values": {"Enumeration": {"Value": hk, "WFSerializationType": "WFStringSubstitutableState"}}},
+            {"Bounded": True, "Property": "Start Date", "Operator": 1001, "Removable": True, "Values": {"Number": "2", "Unit": 16}},
         ]}, "WFSerializationType": "WFContentPredicateTableTemplate"},
         "WFContentItemSortProperty": "Start Date", "WFContentItemSortOrder": "Oldest First", "WFContentItemLimitEnabled": False,
         "CustomOutputName": "Samples " + key,
