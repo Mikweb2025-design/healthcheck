@@ -81,6 +81,22 @@ class WeightTest extends TestCase {
 		$this->assertSame('7 h 40 min', $ctx['metrics']['sleep_total']['period']['max']);
 		$this->assertTrue($ctx['weight']['has']);
 		$this->assertStringContainsString('must be written in Italian', AiTasks::checkupMessages($ctx, 'it')[0]['content']);
+		$this->assertFalse(array_key_exists('goals', $ctx), 'raw goals (sleep_min in minutes) must not reach the model');
+		$this->assertStringContainsString('goal_check', AiTasks::checkupMessages($ctx, 'en')[0]['content']);
+		$gc = AiTasks::goalCheck(['sleep_min' => 450, 'steps' => 9000, 'active_kcal' => 450, 'workouts_week' => 3],
+			['workouts' => ['count' => 6], 'metrics' => ['sleep_total' => ['period' => ['avg' => 422.0]], 'steps' => ['period' => ['avg' => 8941.1]], 'active_kcal' => ['period' => ['avg' => 460.0]]]],
+			['sleep_total' => ['period' => 1], 'steps' => ['period' => 1], 'active_kcal' => ['period' => 1]], 28);
+		$this->assertSame('7 h 30 min', $gc['sleep_per_night']['goal']);
+		$this->assertSame('7 h 02 min', $gc['sleep_per_night']['period_average']);
+		$this->assertSame('below', $gc['sleep_per_night']['verdict']);
+		$this->assertSame('close', $gc['steps_per_day']['verdict']);
+		$this->assertSame('met', $gc['active_energy_per_day']['verdict']);
+		$this->assertSame(1.5, $gc['workouts_per_week']['period_average']);
+		$this->assertSame('below', $gc['workouts_per_week']['verdict']);
+		$ctx['goal_check'] = $gc;
+		$m = AiTasks::checkupMessages($ctx, 'it')[1]['content'];
+		$this->assertStringContainsString('sotto l’obiettivo', $m);
+		$this->assertStringNotContainsString('"verdict"', $m);
 		$w = ['key' => 'rhr_up', 'day' => '2026-03-02', 'params' => []];
 		$e = AiTasks::explainContext($w, $this->rows(), [['day' => '2026-03-01', 'duration_min' => 30]]);
 		$this->assertCount(14, $e['last_14_days']);

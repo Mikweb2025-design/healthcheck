@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 – 2026-11-20
+- AI check-up: goal comparisons are now computed in code (`goal_check`: goal, period value, verdict met/close/below).
+  The model no longer receives raw goals (such as `sleep_min: 450`), so it cannot compare them wrongly or mention field names.
+- Shortcut: Health types use the iOS picker format; only daily types are sent (an empty type stops Find Health Samples).
+- Public repository, English docs, screenshots from a synthetic demo dataset.
+
 ## 0.1.3 – 2026-11-20
 
 * Daily push from the iPhone via Apple Shortcuts: `POST /api/ingest` with a personal ingest token (`X-HC-Token` or
