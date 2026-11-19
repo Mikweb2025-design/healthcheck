@@ -1,11 +1,41 @@
-# Health Check (Nextcloud app)
+# Health Check – your private health agent inside Nextcloud
 
-**Health Check** (DE *Gesundheits-Check*) turns the weekly Apple Health export of an iPhone into a private health
-dashboard inside Nextcloud: three rings (sleep, recovery, movement), trends back to the first recorded day, neutral early
-hints, a printable doctor report, an infographic, goals with a weekly plan, an "ask your data" chat and a weekly AI report
-via n8n. Any watch that writes into Apple Health works (tested with a Huawei watch via Huawei Health → Apple Health).
+**Health Check** turns the Apple Health data of your iPhone and watch into a private health dashboard and agent inside
+your own Nextcloud. Nothing goes to a vendor cloud: data, calendar, reports and AI summaries stay on your server.
 
-> Not a medical device and not medical advice. All hints compare a person only with their own recent past.
+Any watch that writes into Apple Health works. It was built and tested with a **Huawei Watch GT 5 Pro**
+(Huawei Health → Apple Health), which has no usable open API for individuals.
+
+> **Not a medical device and not medical advice.** All hints compare you only with your own recent past and never diagnose.
+
+![How Health Check works](docs/img/how-it-works.svg)
+
+## Features
+
+- **Import that scales**: drop the weekly `Export.zip` into `/Health/Import`. A streaming parser reads a ~1 GB export in
+  about 15 seconds with ~40 MB of memory. Re-imports never create duplicates.
+- **Daily push from the iPhone**: an Apple Shortcut sends the last 48 hours every morning when you stop the alarm.
+- **Three rings** (sleep, recovery, movement) with transparent formulas, **trend charts** with 7-day averages and your
+  personal normal range, back to the first recorded day.
+- **Weight** as a first-class metric: BMI, body fat, 7/30/90-day change, target weight with an ETA, manual weigh-ins.
+- **Early hints** (elevated resting heart rate, SpO₂ drop, short or shallow sleep, weight change): neutral, never a
+  diagnosis, with an AI "Why?" explanation.
+- **Doctor report**: printable A4 page for 30 or 90 days, in its own language (e.g. your doctor's), with AI-prepared
+  questions for the visit.
+- **Infographic** per week, month and year: records, streaks, consistency, activity heatmap, PNG export without identifiers.
+- **Agent**: goals with adaptive weekly targets, an AI plan for next week that is evaluated the week after, nudges,
+  correlations computed in code (the AI only narrates them), an **"Ask your data" chat** on aggregates only.
+- **Weekly AI report via n8n** (any OpenAI-compatible model), saved as files in `/Health/Reports` plus a notification.
+- **Private calendar** "Sport & Gesundheit" with one event per workout, dashboard widget, installable **PWA**.
+- Languages: English, German, Italian.
+
+## Quick start
+
+1. Download the latest `healthcheck-<version>.tar.gz` from [Releases](https://github.com/Mikweb2025-design/healthcheck/releases)
+   and extract it into `custom_apps/`, then `occ app:enable healthcheck` ([full guide](docs/INSTALL.md)).
+2. On the iPhone: **Health → profile picture → Export All Health Data → Save to Files → Nextcloud → `Health/Import`**.
+3. Open `https://<your-cloud>/apps/healthcheck/`. The import runs within 15 minutes, or press **Import now**.
+4. Optional: daily Shortcut push, n8n weekly AI report and the chat model (see below).
 
 ## How it works
 

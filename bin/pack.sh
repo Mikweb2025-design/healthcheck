@@ -26,10 +26,11 @@ mkdir -p "$DEST/shortcuts" && cp shortcuts/*.shortcut "$DEST/shortcuts/" 2>/dev/
 find "$DEST" -name '.DS_Store' -delete
 
 # hygiene: no personal names, hosts or health exports in the package
+REPO_URL="https://github.com/Mikweb2025-design/healthcheck"   # the only allowed public reference
 PATTERN="$(printf 'dan%s|mich%s|mik%s|strato%s' iele elin web server)"
 LEAK=0
 while IFS= read -r -d '' f; do
-	if grep -qiE "$PATTERN" "$f"; then echo "forbidden reference in: $f" >&2; LEAK=1; fi
+	if LC_ALL=C sed "s#$REPO_URL##g" "$f" | grep -qiaE "$PATTERN"; then echo "forbidden reference in: $f" >&2; LEAK=1; fi
 	case "$f" in *.zip|*Export.xml|*export_cda.xml) echo "forbidden file: $f" >&2; LEAK=1;; esac
 done < <(find "$DEST" -type f -print0)
 [ "$LEAK" = 0 ] || exit 1
