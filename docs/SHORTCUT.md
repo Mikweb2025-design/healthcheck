@@ -17,9 +17,9 @@ unlocked right after. If a run fails, add a second automation when you open an a
 
 ## What is sent
 
-The last 48 hours of sleep analysis (all stages), heart rate, resting heart rate, SpO₂, steps, distance, active energy,
-floors, weight, body fat and VO₂max, as JSON to `POST /apps/healthcheck/api/ingest` with the header `X-HC-Token`.
-Workouts are not part of the shortcut yet; they come with the weekly export.
+The last 48 hours of sleep analysis (all stages), heart rate, resting heart rate, SpO₂ (Blood Oxygen), steps,
+walking + running distance, active calories and floors, as JSON to `POST /apps/healthcheck/api/ingest` with the header `X-HC-Token`.
+Find Health Samples stops the whole shortcut when a type has no sample in the period, so sparse types (weight, body fat, VO₂max, HRV, cycling, workouts) come from the weekly export or the manual weigh-in in the app.
 
 The server accepts the formats Shortcuts really produces, including localized dates and sleep stage names
 (English, German, Italian) and decimal commas. Repeated pushes are idempotent, and the weekly export fills gaps and

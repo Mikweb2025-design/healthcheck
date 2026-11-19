@@ -17,10 +17,11 @@ OBJ = "￼"
 
 # our key -> Health type as named in the Shortcuts filter (English identifiers stored in the file)
 TYPES = [
+    # only types the watch writes every day: "Find Health Samples" stops the whole shortcut when a type has no sample
+    # in the period, so sparse types (HRV, weight, body fat, VO2max, cycling) come from the weekly export or manual entry
     ("sleep", "Sleep"), ("heart_rate", "Heart Rate"), ("resting_hr", "Resting Heart Rate"), ("spo2", "Blood Oxygen"),
-    ("hrv", "Heart Rate Variability"), ("steps", "Steps"), ("distance", "Walking + Running Distance"), ("cycling", "Cycling Distance"),
-    ("active_energy", "Active Calories"), ("flights", "Flights Climbed"), ("weight", "Weight"), ("body_fat", "Body Fat Percentage"),
-    ("vo2max", "Cardio Fitness"),
+    ("steps", "Steps"), ("distance", "Walking + Running Distance"), ("active_energy", "Active Calories"),
+    ("flights", "Flights Climbed"),
 ]
 DETAILS = [("values", "Value"), ("units", "Unit"), ("starts", "Start Date"), ("ends", "End Date"), ("sources", "Source")]
 
