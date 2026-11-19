@@ -11,6 +11,7 @@ use OCA\HealthCheck\AppInfo\Application;
 use OCA\HealthCheck\Service\Calendar;
 use OCA\HealthCheck\Service\DataService;
 use OCA\HealthCheck\Service\ImportService;
+use OCA\HealthCheck\Service\IngestService;
 use OCA\HealthCheck\Service\Outbound;
 use OCA\HealthCheck\Service\Settings;
 use OCA\HealthCheck\Service\Store;
@@ -37,6 +38,7 @@ class ApiController extends Controller {
 		private Store $store,
 		private Calendar $calendar,
 		private Outbound $outbound,
+		private IngestService $ingest,
 		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -177,6 +179,20 @@ class ApiController extends Controller {
 	#[NoAdminRequired]
 	public function ask(string $question = ''): JSONResponse {
 		return $this->run(fn ($uid) => $this->data->ask($uid, $question));
+	}
+
+	/** creates (or rotates) the personal ingest token; shown only in this answer */
+	#[NoAdminRequired]
+	public function ingestToken(): JSONResponse {
+		return $this->run(fn ($uid) => ['token' => $this->ingest->newToken($uid)] + $this->ingest->info($uid));
+	}
+
+	#[NoAdminRequired]
+	public function ingestRevoke(): JSONResponse {
+		return $this->run(function ($uid) {
+			$this->ingest->revoke($uid);
+			return $this->ingest->info($uid);
+		});
 	}
 
 	#[NoAdminRequired]

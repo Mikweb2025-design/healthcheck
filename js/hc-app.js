@@ -478,7 +478,8 @@
       stat(t('st_last_day'), li ? HC.day(li.lastDay) : '–', st.ageDays !== null ? t('age_days', { n: st.ageDays }) : '', st.stale ? COL.heart : COL.recovery),
       stat(t('st_last_import'), li ? HC.dateTime(li.finishedAt) : '–', li ? t('import_meta', { s: HC.num(li.durationMs / 1000, 1), mb: li.peakMb }) : ''),
       stat(t('st_days'), ov.range ? HC.num(ov.range.days, 0) : '–', ov.range ? HC.day(ov.range.from) + ' – ' + HC.day(ov.range.to) : ''),
-      stat(t('st_pending'), String(st.pending.length), st.pending.length ? st.pending[0].name : '')
+      stat(t('st_pending'), String(st.pending.length), st.pending.length ? st.pending[0].name : ''),
+      stat(t('st_push'), st.push && st.push.lastAt ? HC.dateTime(st.push.lastAt) : '–', st.push && st.push.lastAt ? t('push_meta', { n: st.push.samples, day: HC.day(st.push.lastDay) }) : (st.push && st.push.tokenSet ? t('push_waiting') : t('push_off')))
     ])];
     if (st.stale) { sBody.unshift(h('div', { class: 'hc-banner hc-banner-warn', text: t('stale_title', { days: st.ageDays }) + ' ' + t('stale_text') })); }
     var prog = h('div', { class: 'hc-muted' });
@@ -506,6 +507,7 @@
         return h('tr', {}, [h('td', { text: HC.dateTime(i.startedAt) }), h('td', { text: t('st_' + i.status) }), h('td', { text: i.days !== null ? t('import_row', { d: i.days, w: i.workouts }) : (i.message || '') }), h('td', { class: 'hc-num', text: i.durationMs !== null ? HC.num(i.durationMs / 1000, 1) + ' s' : '' })]);
       }))])]), main.children[1] || null);
     });
+    main.appendChild(pushCard(st));
     main.appendChild(installHint(true));
     // settings
     var f = h('form', { class: 'hc-form' });
@@ -539,6 +541,37 @@
         if (!root.confirm(t('delete_confirm'))) { return; }
         HC.api('DELETE', '/api/data').then(function () { toast(t('deleted')); load().then(route); }, function (e) { toast(errText(e), true); });
       }, 'hc-btn-danger'), disclaimer()]));
+  }
+
+  /* daily push from the iPhone via Apple Shortcuts */
+  function pushCard(st) {
+    var p = st.push || {}, base = HC.rootEl().getAttribute('data-base');
+    var url = root.location.origin + base + '/api/ingest';
+    var tokOut = h('div', { class: 'hc-token-out' });
+    var copyBtn = function (text) { return btn(t('copy'), function () { try { root.navigator.clipboard.writeText(text).then(function () { toast(t('copied')); }); } catch (e) { toast(text); } }, 'hc-btn-small'); };
+    var mk = btn(p.tokenSet ? t('push_rotate') : t('push_create'), function () {
+      if (p.tokenSet && !root.confirm(t('push_rotate_confirm'))) { return; }
+      HC.api('POST', '/api/ingest/token').then(function (r) {
+        HC.clear(tokOut).appendChild(h('div', { class: 'hc-banner hc-banner-info' }, [h('strong', { text: t('push_token_once') }), h('code', { class: 'hc-secret', text: r.token }), copyBtn(r.token)]));
+        p.tokenSet = true;
+      }, function (e) { toast(errText(e), true); });
+    }, 'hc-btn-primary');
+    var rv = btn(t('push_revoke'), function () {
+      if (!root.confirm(t('push_revoke_confirm'))) { return; }
+      HC.api('DELETE', '/api/ingest/token').then(function () { toast(t('push_revoked')); return load(); }).then(route);
+    }, 'hc-btn-danger');
+    var steps = function (prefix, n) { var a = []; for (var i = 1; i <= n; i++) { a.push(h('li', { text: t(prefix + i) })); } return h('ol', {}, a); };
+    return card(t('push_title'), [
+      h('p', { class: 'hc-muted', text: t('push_intro') }),
+      h('p', {}, [h('strong', { text: t('push_last') + ': ' }), p.lastAt ? HC.dateTime(p.lastAt) + ' · ' + t('push_meta', { n: p.samples, day: HC.day(p.lastDay) }) : '–']),
+      h('div', { class: 'hc-row' }, [h('span', { class: 'hc-muted', text: p.tokenSet ? t('push_token_set') : t('push_token_none') }), mk, p.tokenSet ? rv : null]),
+      tokOut,
+      h('div', { class: 'hc-row' }, [h('span', { class: 'hc-muted', text: t('push_url') }), h('code', { class: 'hc-secret', text: url }), copyBtn(url)]),
+      h('div', { class: 'hc-row' }, [h('a', { class: 'hc-btn hc-btn-primary', href: base + '/shortcut', text: t('push_install') })]),
+      h('details', { class: 'hc-how' }, [h('summary', { text: t('push_how_install') }), steps('push_i', 5)]),
+      h('details', { class: 'hc-how' }, [h('summary', { text: t('push_how_auto') }), steps('push_a', 6), h('p', { class: 'hc-muted', text: t('push_locked') })]),
+      h('details', { class: 'hc-how' }, [h('summary', { text: t('push_how_manual') }), steps('push_m', 9), h('p', { class: 'hc-muted', text: t('push_keys') })])
+    ], { id: 'hc-push' });
   }
 
   function installHint(always) {

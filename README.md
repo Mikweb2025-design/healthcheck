@@ -71,6 +71,18 @@ weight change ≥ 3 % in ~30 days. Data older than 8 days → banner + Nextcloud
 Home-screen app: open `https://<cloud>/apps/healthcheck/` in Safari → **Share → Add to Home Screen**. The home-screen app
 has its own storage, so sign in to Nextcloud there once.
 
+## Daily push from the iPhone (Apple Shortcuts)
+
+A web app cannot read HealthKit. The shortcut **Health Check – Invio** (`shortcuts/Health-Check-Invio.shortcut`, also
+downloadable in the app under *Data → Automatic push*) reads the last 2 days with *Find Health Samples* and posts them to
+`/apps/healthcheck/api/ingest` with the personal token (header `X-HC-Token`). Create the token in the app (shown once),
+add the shortcut on the iPhone (it asks for the address and the token), run it once by hand to allow Health access, then
+add a personal automation: *Alarm → When the alarm is stopped → Run immediately → Health Check – Invio*. iOS does not
+release Health data while the phone is locked, so unlock soon after or add a second automation when an app is opened.
+The app also contains a step-by-step guide to build the shortcut by hand. Payload: flat JSON with
+`<type>_values|_starts|_ends|_units|_sources` (newline separated), or `samples: [{type, value, unit, start, end, source}]`.
+Regenerate and sign the file on a Mac with `python3 shortcuts/build_shortcut.py`.
+
 ## Installation
 
 ```bash

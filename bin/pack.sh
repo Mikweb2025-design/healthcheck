@@ -22,6 +22,7 @@ mkdir -p "$DEST" "$OUT"
 for item in appinfo lib l10n js css img LICENSE README.md CHANGELOG.md; do
 	[ -e "$item" ] && cp -R "$item" "$DEST/"
 done
+mkdir -p "$DEST/shortcuts" && cp shortcuts/*.shortcut "$DEST/shortcuts/" 2>/dev/null || true
 find "$DEST" -name '.DS_Store' -delete
 
 # hygiene: no personal names, hosts or health exports in the package

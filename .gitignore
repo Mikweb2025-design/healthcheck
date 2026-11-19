@@ -5,3 +5,4 @@ Export.xml
 export_cda.xml
 apple_health_export/
 n8n/*.real.json
+shortcuts/*.unsigned.shortcut

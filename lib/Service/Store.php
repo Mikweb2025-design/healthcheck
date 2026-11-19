@@ -316,9 +316,139 @@ class Store {
 			$q->executeQuery()->fetchAll());
 	}
 
+	// ---- raw samples from the phone ------------------------------------------------------------------------------
+	/** inserts samples that are not stored yet; returns the number of new ones */
+	public function insertRaw(string $uid, array $samples, int $now): int {
+		if ($samples === []) {
+			return 0;
+		}
+		$hashes = array_map(fn ($s) => $s['hash'], $samples);
+		$have = [];
+		foreach (array_chunk($hashes, 500) as $chunk) {
+			$q = $this->db->getQueryBuilder();
+			$q->select('hash')->from('hc_raw')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))
+				->andWhere($q->expr()->in('hash', $q->createNamedParameter($chunk, IQueryBuilder::PARAM_STR_ARRAY)));
+			foreach ($q->executeQuery()->fetchAll(\PDO::FETCH_COLUMN) as $h) {
+				$have[$h] = true;
+			}
+		}
+		$n = 0;
+		$this->db->beginTransaction();
+		try {
+			foreach ($samples as $s) {
+				if (isset($have[$s['hash']])) {
+					continue;
+				}
+				$have[$s['hash']] = true;
+				$q = $this->db->getQueryBuilder();
+				$q->insert('hc_raw')->values([
+					'uid' => $q->createNamedParameter($uid), 'hash' => $q->createNamedParameter($s['hash']), 'type' => $q->createNamedParameter($s['hk']),
+					'start_ts' => $q->createNamedParameter($s['start'], IQueryBuilder::PARAM_INT), 'end_ts' => $q->createNamedParameter($s['end'], IQueryBuilder::PARAM_INT),
+					'value' => $q->createNamedParameter(mb_substr($s['value'], 0, 64)), 'unit' => $q->createNamedParameter(mb_substr($s['unit'], 0, 16)),
+					'source' => $q->createNamedParameter($s['source']), 'created_at' => $q->createNamedParameter($now, IQueryBuilder::PARAM_INT),
+				])->executeStatement();
+				$n++;
+			}
+			$this->db->commit();
+		} catch (\Throwable $e) {
+			$this->db->rollBack();
+			throw $e;
+		}
+		return $n;
+	}
+
+	/** @return list<array{type:string,start_ts:int,end_ts:int,value:string,unit:?string,source:?string}> */
+	public function raw(string $uid, int $from, int $to): array {
+		$q = $this->db->getQueryBuilder();
+		$q->select('type', 'start_ts', 'end_ts', 'value', 'unit', 'source')->from('hc_raw')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))
+			->andWhere($q->expr()->gte('start_ts', $q->createNamedParameter($from, IQueryBuilder::PARAM_INT)))
+			->andWhere($q->expr()->lte('start_ts', $q->createNamedParameter($to, IQueryBuilder::PARAM_INT)));
+		return $q->executeQuery()->fetchAll();
+	}
+
+	/**
+	 * Merges daily rows computed from phone samples. A row that came from the phone before is replaced (the raw data
+	 * only grows); a row from a zip import is only completed: empty columns are filled, sums take the larger value,
+	 * heart rate min/max are widened. The next zip import overwrites everything again.
+	 */
+	public function mergeDays(string $uid, array $days): array {
+		$stat = ['inserted' => 0, 'replaced' => 0, 'completed' => 0];
+		$sums = ['steps', 'distance_m', 'cycling_m', 'flights', 'active_kcal'];
+		foreach ($days as $day => $new) {
+			$q = $this->db->getQueryBuilder();
+			$q->select('*')->from('hc_day')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->andWhere($q->expr()->eq('day', $q->createNamedParameter((string)$day)));
+			$old = $q->executeQuery()->fetch();
+			if ($old === false) {
+				$this->replaceDays($uid, [$day => ['src' => 'shortcut'] + $new]);
+				$stat['inserted']++;
+				continue;
+			}
+			$old = self::dayRow($old);
+			if ($old['src'] === 'shortcut') {
+				$row = ['src' => 'shortcut'] + $new;
+				$stat['replaced']++;
+			} else {
+				$row = $old;
+				foreach (Aggregator::COLUMNS as $c) {
+					$nv = $new[$c] ?? null;
+					if ($nv === null || $c === 'src') {
+						continue;
+					}
+					if ($row[$c] === null) {
+						$row[$c] = $nv;
+					} elseif (in_array($c, $sums, true)) {
+						$row[$c] = max((int)$row[$c], (int)$nv);
+					} elseif ($c === 'hr_min') {
+						$row[$c] = min((int)$row[$c], (int)$nv);
+					} elseif ($c === 'hr_max') {
+						$row[$c] = max((int)$row[$c], (int)$nv);
+					}
+				}
+				unset($row['day']);
+				$stat['completed']++;
+			}
+			$this->replaceDays($uid, [$day => $row]);
+		}
+		return $stat;
+	}
+
+	/** adds workouts unless one starting within 2 minutes is already stored (any source); returns the added ones */
+	public function addWorkouts(string $uid, array $workouts): array {
+		$added = [];
+		foreach ($workouts as $w) {
+			$q = $this->db->getQueryBuilder();
+			$q->select($q->func()->count('*', 'n'))->from('hc_workout')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))
+				->andWhere($q->expr()->gte('start_ts', $q->createNamedParameter($w['start_ts'] - 120, IQueryBuilder::PARAM_INT)))
+				->andWhere($q->expr()->lte('start_ts', $q->createNamedParameter($w['start_ts'] + 120, IQueryBuilder::PARAM_INT)));
+			if ((int)$q->executeQuery()->fetchOne() > 0) {
+				continue;
+			}
+			$i = $this->db->getQueryBuilder();
+			$i->insert('hc_workout')->values([
+				'uid' => $i->createNamedParameter($uid), 'wkey' => $i->createNamedParameter($w['wkey']), 'day' => $i->createNamedParameter($w['day']),
+				'activity' => $i->createNamedParameter($w['activity']), 'source' => $i->createNamedParameter($w['source']),
+				'start_ts' => $i->createNamedParameter($w['start_ts'], IQueryBuilder::PARAM_INT), 'end_ts' => $i->createNamedParameter($w['end_ts'], IQueryBuilder::PARAM_INT),
+				'duration_min' => $i->createNamedParameter((string)$w['duration_min']),
+				'distance_m' => $i->createNamedParameter($w['distance_m'] === null ? null : (int)$w['distance_m'], $w['distance_m'] === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_INT),
+				'kcal' => $i->createNamedParameter($w['kcal'] === null ? null : (int)$w['kcal'], $w['kcal'] === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_INT),
+				'hr_avg' => $i->createNamedParameter(null, IQueryBuilder::PARAM_NULL),
+			])->executeStatement();
+			$added[] = $w;
+		}
+		return $added;
+	}
+
+	/** last day that has any imported or pushed data */
+	public function lastDataDay(string $uid): ?string {
+		$q = $this->db->getQueryBuilder();
+		$q->select($q->func()->max('day'))->from('hc_day')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)));
+		$v = $q->executeQuery()->fetchOne();
+		return $v === false || $v === null ? null : (string)$v;
+	}
+
 	public function deleteAll(string $uid): array {
 		$out = [];
-		foreach (['hc_day', 'hc_workout', 'hc_import', 'hc_ai', 'hc_chat', 'hc_weight'] as $t) {
+		foreach (['hc_day', 'hc_workout', 'hc_import', 'hc_ai', 'hc_chat', 'hc_weight', 'hc_raw'] as $t) {
 			$q = $this->db->getQueryBuilder();
 			$out[$t] = $q->delete($t)->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->executeStatement();
 		}

@@ -34,11 +34,21 @@ class DataService {
 		$last = $this->store->lastOkImport($uid);
 		$imports = $this->store->imports($uid, 1);
 		$today = $this->import->today($uid);
-		$age = ImportService::ageDays($last['lastDay'] ?? null, $today);
+		$push = [
+			'lastAt' => (int)$this->settings->get($uid, 'ingest_last', '0') ?: null,
+			'lastDay' => $this->settings->get($uid, 'ingest_last_day') ?: null,
+			'samples' => (int)$this->settings->get($uid, 'ingest_last_samples', '0'),
+			'tokenSet' => $this->settings->get($uid, 'ingest_token_hash') !== '',
+		];
+		// freshness: whichever channel (zip export or daily push) delivered the newest day
+		$newest = max((string)($last['lastDay'] ?? ''), (string)($push['lastDay'] ?? '')) ?: null;
+		$age = ImportService::ageDays($newest, $today);
 		return [
 			'today' => $today,
 			'lastImport' => $last,
 			'lastAttempt' => $imports[0] ?? null,
+			'push' => $push,
+			'newestDay' => $newest,
 			'ageDays' => $age,
 			'stale' => $age !== null && $age > ImportService::STALE_DAYS,
 			'staleAfterDays' => ImportService::STALE_DAYS,

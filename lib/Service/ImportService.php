@@ -139,14 +139,15 @@ class ImportService {
 	/** reminder when the newest data is older than STALE_DAYS (once per data day) */
 	public function checkStale(string $uid): ?int {
 		$last = $this->store->lastOkImport($uid);
-		if ($last === null || $last['lastDay'] === null) {
+		$newest = max((string)($last['lastDay'] ?? ''), $this->settings->get($uid, 'ingest_last_day'));
+		if ($newest === '') {
 			return null;
 		}
 		$today = (new \DateTimeImmutable('@' . $this->time->getTime()))->setTimezone(new \DateTimeZone($this->settings->tz($uid)))->format('Y-m-d');
-		$age = (int)round((strtotime($today . ' 12:00 UTC') - strtotime($last['lastDay'] . ' 12:00 UTC')) / 86400);
-		if ($age > self::STALE_DAYS && $this->settings->get($uid, 'stale_notified') !== $last['lastDay']) {
-			$this->settings->set($uid, 'stale_notified', $last['lastDay']);
-			$this->notify->send($uid, 'stale', ['day' => $last['lastDay'], 'days' => $age], 'stale');
+		$age = (int)round((strtotime($today . ' 12:00 UTC') - strtotime($newest . ' 12:00 UTC')) / 86400);
+		if ($age > self::STALE_DAYS && $this->settings->get($uid, 'stale_notified') !== $newest) {
+			$this->settings->set($uid, 'stale_notified', $newest);
+			$this->notify->send($uid, 'stale', ['day' => $newest, 'days' => $age], 'stale');
 		}
 		return $age;
 	}
