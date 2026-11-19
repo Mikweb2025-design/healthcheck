@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE HealthData [
+<!ELEMENT HealthData (ExportDate,Me,(Record|Correlation|Workout|ActivitySummary)*)>
+<!ATTLIST HealthData locale CDATA #REQUIRED>
+]>
+<!-- Synthetic test data, not from a real person. -->
+<HealthData locale="de_DE">
+ <ExportDate value="2026-03-10 21:00:00 +0100"/>
+ <Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexNotSet"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="HUAWEI Health: Europa" unit="count" startDate="2026-03-09 08:00:00 +0100" endDate="2026-03-09 09:00:00 +0100" value="4000"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="HUAWEI Health: Europa" unit="count" startDate="2026-03-09 18:00:00 +0100" endDate="2026-03-09 19:00:00 +0100" value="3500"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Phone of Test" unit="count" startDate="2026-03-09 08:00:00 +0100" endDate="2026-03-09 09:00:00 +0100" value="3900"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Phone of Test" unit="count" startDate="2026-03-08 10:00:00 +0100" endDate="2026-03-08 11:00:00 +0100" value="2100"/>
+ <Record type="HKQuantityTypeIdentifierDistanceWalkingRunning" sourceName="HUAWEI Health: Europa" unit="km" startDate="2026-03-09 08:00:00 +0100" endDate="2026-03-09 09:00:00 +0100" value="2.5"/>
+ <Record type="HKQuantityTypeIdentifierActiveEnergyBurned" sourceName="HUAWEI Health: Europa" unit="kJ" startDate="2026-03-09 08:00:00 +0100" endDate="2026-03-09 09:00:00 +0100" value="418.4"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="HUAWEI Health: Europa" unit="count/min" startDate="2026-03-09 08:00:00 +0100" endDate="2026-03-09 08:00:00 +0100" value="60">
+  <MetadataEntry key="HKMetadataKeyHeartRateMotionContext" value="0"/>
+ </Record>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="HUAWEI Health: Europa" unit="count/min" startDate="2026-03-09 12:00:00 +0100" endDate="2026-03-09 12:00:00 +0100" value="90"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="HUAWEI Health: Europa" unit="count/min" startDate="2026-03-09 23:30:00 +0100" endDate="2026-03-09 23:30:00 +0100" value="120"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="HUAWEI Health: Europa" unit="count/min" startDate="2026-03-09 23:59:00 +0100" endDate="2026-03-09 23:59:00 +0100" value="999"/>
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="HUAWEI Health: Europa" unit="count/min" startDate="2026-03-09 06:00:00 +0100" endDate="2026-03-09 06:00:00 +0100" value="55"/>
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="HUAWEI Health" unit="count/min" startDate="2026-03-09 06:00:00 +0100" endDate="2026-03-09 06:00:00 +0100" value="70"/>
+ <Record type="HKQuantityTypeIdentifierOxygenSaturation" sourceName="HUAWEI Health: Europa" unit="%" startDate="2026-03-09 03:00:00 +0100" endDate="2026-03-09 03:00:00 +0100" value="0.96"/>
+ <Record type="HKQuantityTypeIdentifierOxygenSaturation" sourceName="HUAWEI Health: Europa" unit="%" startDate="2026-03-09 04:00:00 +0100" endDate="2026-03-09 04:00:00 +0100" value="0.98"/>
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="HUAWEI Health: Europa" unit="kg" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="81.2"/>
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="HUAWEI Health: Europa" unit="kg" startDate="2026-03-09 20:00:00 +0100" endDate="2026-03-09 20:00:00 +0100" value="81.9"/>
+ <Record type="HKQuantityTypeIdentifierBodyFatPercentage" sourceName="HUAWEI Health: Europa" unit="%" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="0.215"/>
+ <Record type="HKQuantityTypeIdentifierDietaryWater" sourceName="Other" unit="mL" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="250"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-08 23:00:00 +0100" endDate="2026-03-09 01:00:00 +0100" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-09 00:30:00 +0100" endDate="2026-03-09 01:00:00 +0100" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-09 01:00:00 +0100" endDate="2026-03-09 02:00:00 +0100" value="HKCategoryValueSleepAnalysisAsleepDeep"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-09 02:00:00 +0100" endDate="2026-03-09 02:20:00 +0100" value="HKCategoryValueSleepAnalysisAwake"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-09 02:20:00 +0100" endDate="2026-03-09 03:50:00 +0100" value="HKCategoryValueSleepAnalysisAsleepREM"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-09 03:50:00 +0100" endDate="2026-03-09 06:30:00 +0100" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health" startDate="2026-03-08 22:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="HKCategoryValueSleepAnalysisAsleepUnspecified"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health" startDate="2026-03-09 14:00:00 +0100" endDate="2026-03-09 14:20:00 +0100" value="HKCategoryValueSleepAnalysisAsleepUnspecified"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health" startDate="2026-03-09 22:30:00 +0100" endDate="2026-03-10 06:00:00 +0100" value="HKCategoryValueSleepAnalysisInBed"/>
+ <Correlation type="HKCorrelationTypeIdentifierBloodPressure" sourceName="Other" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100">
+  <Record type="HKQuantityTypeIdentifierStepCount" sourceName="HUAWEI Health: Europa" unit="count" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="100000"/>
+ </Correlation>
+ <Workout workoutActivityType="HKWorkoutActivityTypeCycling" duration="72" durationUnit="min" sourceName="HUAWEI Health: Europa" startDate="2026-03-09 16:00:00 +0100" endDate="2026-03-09 17:12:00 +0100">
+  <MetadataEntry key="HKMetadataKeySyncVersion" value="1"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" startDate="2026-03-09 16:00:00 +0100" endDate="2026-03-09 17:12:00 +0100" sum="512.4" unit="kcal"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceCycling" startDate="2026-03-09 16:00:00 +0100" endDate="2026-03-09 17:12:00 +0100" sum="32.4" unit="km"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierHeartRate" startDate="2026-03-09 16:00:00 +0100" endDate="2026-03-09 17:12:00 +0100" average="128.4" minimum="90" maximum="160" unit="count/min"/>
+ </Workout>
+ <Workout workoutActivityType="HKWorkoutActivityTypeCycling" duration="72" durationUnit="min" sourceName="HUAWEI Health" startDate="2026-03-09 16:00:30 +0100" endDate="2026-03-09 17:12:00 +0100"/>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="1800" durationUnit="s" totalDistance="5.1" totalDistanceUnit="km" totalEnergyBurned="300" totalEnergyBurnedUnit="kcal" sourceName="Running" startDate="2017-10-15 12:41:07 +0200" endDate="2017-10-15 13:11:07 +0200"/>
+ <ActivitySummary dateComponents="2026-03-09" activeEnergyBurned="0"/>
+</HealthData>
