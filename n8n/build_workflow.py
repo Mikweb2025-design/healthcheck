@@ -64,6 +64,9 @@ const facts = {
     active_kcal: s.next_week.targets.active_kcal, workouts: s.next_week.targets.workouts } }, previous_plan_evaluation: s.previous_plan ? s.previous_plan.evaluation : null,
   records_all_time: s.week_infographic.records, streaks: s.week_infographic.streaks, consistency: s.week_infographic.consistency,
   earlier_weekly_summaries: s.memory,
+  weight: s.weight && s.weight.has ? { last_kg: s.weight.last.kg, last_weigh_in: s.weight.last.day, days_since_weigh_in: s.weight.age_days, change_30d_kg: s.weight.change['30'] ? s.weight.change['30'].kg : null,
+    change_90d_kg: s.weight.change['90'] ? s.weight.change['90'].kg : null, bmi: s.weight.bmi, body_fat_pct: s.weight.bodyfat ? s.weight.bodyfat.pct : null, rate_kg_per_week: s.weight.rate_kg_week, target_kg: s.weight.goal, eta: s.weight.eta } : null,
+  computed_correlations_last_90_days: (s.correlations_90d ? s.correlations_90d.pairs : []).map(c => ({ relation: c.key, x: c.x, y: c.y, r: c.r, n: c.n, strength: c.strength })),
 };
 const days = [];
 for (let i = 0; i < 7; i++) { const d = new Date(s.next_week.start + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + i); days.push(d.toISOString().slice(0, 10)); }
@@ -76,6 +79,7 @@ Return ONLY a JSON object with exactly these keys:
  "tips": ["3 concrete, safe tips: one about sleep, one about movement, one about recovery; each max 2 sentences and tied to a number"],
  "doctor": "One neutral paragraph in clinical language for a physician: period, data source (consumer smartwatch, self-recorded), mean values with ranges and n, notable changes vs baseline, no interpretation beyond the data, no diagnosis",
  "plan": {"days": [{"date": "YYYY-MM-DD", "kind": "train|easy|rest", "note": "max 12 words"}], "bedtime": "HH:MM", "focus": "one sentence"}}
+In the summary also mention the weight (last weigh-in with its date, change, target if set; if the last weigh-in is older than 7 days, suggest weighing in) and ONE of the computed correlations with its r and n, saying that a correlation is not a cause. Never compute new correlations yourself.
 The plan covers exactly these dates: ${days.join(', ')}. Choose about ${s.next_week.targets.workouts} train days; if recovery is low or resting heart rate is elevated, start with rest/easy days. The bedtime should allow the sleep target of ${hm(s.next_week.targets.sleep_min)}.`;
 const user = `Metrics (7 days vs previous 28 days):\n${lines.join('\n')}\n\nWeekly trend (13 weeks):\n${trend}\n\nFacts JSON:\n${JSON.stringify(facts)}`;
 return [{ json: { messages: [{ role: 'system', content: system }, { role: 'user', content: user }], summary: s, days } }];
@@ -108,15 +112,21 @@ const TX = {
   de: { week: 'Wochenbericht', doc: 'Arztbericht', kw: 'KW', period: 'Zeitraum', days: 'Tage mit Daten', sum: 'Zusammenfassung', tips: 'Tipps', plan: 'Plan für die nächste Woche',
     docpar: 'Zusammenfassung für das ärztliche Gespräch', keys: 'Kennzahlen (Mittelwerte)', d7: '7 Tage', d28: '28 Tage davor', disc: 'Kein medizinischer Rat. Selbst erhobene Werte einer Verbraucher-Smartwatch, keine Diagnose; bei anhaltenden Auffälligkeiten ärztlich abklären lassen.',
     bed: 'Schlafenszeit', train: 'Training', easy: 'locker', rest: 'Ruhetag', model: 'Modell', wo: 'Trainings', src: 'Quelle: Apple-Health-Export (Smartwatch)',
-    m: ['Ruhepuls (bpm)', 'SpO₂ (%)', 'Schlaf', 'Tiefschlaf', 'Schritte/Tag', 'Aktive kcal/Tag', 'Gewicht (kg)', 'VO₂max'], dec: ',' },
+    m: ['Ruhepuls (bpm)', 'SpO₂ (%)', 'Schlaf', 'Tiefschlaf', 'Schritte/Tag', 'Aktive kcal/Tag', 'Gewicht (kg)', 'VO₂max'], dec: ',',
+    wt: 'Gewicht', wlast: 'Letzte Wiegung', w30: 'Änderung 30 Tage', w90: 'Änderung 90 Tage', fat: 'Körperfett', rate: 'Tempo', eta: 'Ziel', week_u: 'Woche', corr: 'Zusammenhänge (90 Tage, berechnet)', corrnote: 'Korrelation ist keine Ursache.',
+    cs: { none: 'kein', weak: 'schwach', moderate: 'mittel', strong: 'deutlich' } },
   it: { week: 'Report settimanale', doc: 'Report per il medico', kw: 'sett.', period: 'Periodo', days: 'giorni con dati', sum: 'Riepilogo', tips: 'Consigli', plan: 'Piano per la prossima settimana',
     docpar: 'Riepilogo per il medico', keys: 'Valori chiave (medie)', d7: '7 giorni', d28: '28 giorni prima', disc: 'Non è un consiglio medico. Valori rilevati da uno smartwatch di consumo, nessuna diagnosi; per anomalie persistenti rivolgersi a un medico.',
     bed: 'Ora di dormire', train: 'allenamento', easy: 'leggero', rest: 'riposo', model: 'Modello', wo: 'Allenamenti', src: 'Fonte: esportazione Apple Salute (smartwatch)',
-    m: ['FC a riposo (bpm)', 'SpO₂ (%)', 'Sonno', 'Sonno profondo', 'Passi/giorno', 'kcal attive/giorno', 'Peso (kg)', 'VO₂max'], dec: ',' },
+    m: ['FC a riposo (bpm)', 'SpO₂ (%)', 'Sonno', 'Sonno profondo', 'Passi/giorno', 'kcal attive/giorno', 'Peso (kg)', 'VO₂max'], dec: ',',
+    wt: 'Peso', wlast: 'Ultima pesata', w30: 'Variazione 30 giorni', w90: 'Variazione 90 giorni', fat: 'Grasso corporeo', rate: 'Ritmo', eta: 'Obiettivo', week_u: 'settimana', corr: 'Relazioni (90 giorni, calcolate)', corrnote: 'Correlazione non significa causa.',
+    cs: { none: 'nessuna', weak: 'debole', moderate: 'moderata', strong: 'netta' } },
   en: { week: 'Weekly report', doc: 'Doctor report', kw: 'week', period: 'Period', days: 'days with data', sum: 'Summary', tips: 'Tips', plan: 'Plan for next week',
     docpar: 'Summary for the physician', keys: 'Key figures (means)', d7: '7 days', d28: '28 days before', disc: 'Not medical advice. Self-recorded values of a consumer smartwatch, no diagnosis; see a doctor about persistent anomalies.',
     bed: 'Bedtime', train: 'training', easy: 'easy', rest: 'rest day', model: 'Model', wo: 'Workouts', src: 'Source: Apple Health export (smartwatch)',
-    m: ['Resting HR (bpm)', 'SpO₂ (%)', 'Sleep', 'Deep sleep', 'Steps/day', 'Active kcal/day', 'Weight (kg)', 'VO₂max'], dec: '.' },
+    m: ['Resting HR (bpm)', 'SpO₂ (%)', 'Sleep', 'Deep sleep', 'Steps/day', 'Active kcal/day', 'Weight (kg)', 'VO₂max'], dec: '.',
+    wt: 'Weight', wlast: 'Last weigh-in', w30: 'Change 30 days', w90: 'Change 90 days', fat: 'Body fat', rate: 'Rate', eta: 'Target', week_u: 'week', corr: 'Relations (90 days, computed)', corrnote: 'Correlation is not causation.',
+    cs: { none: 'none', weak: 'weak', moderate: 'moderate', strong: 'clear' } },
 };
 const T = TX[lang] || TX.en, R = TX[rlang] || TX.en;
 const dmy = (iso, l) => l === 'en' ? iso : iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4);
@@ -126,6 +136,25 @@ const rowsFor = X => [[0, m.resting_hr, v => num(v, 1, X)], [1, m.spo2_avg, v =>
   [4, m.steps, v => num(v, 0, X)], [5, m.active_kcal, v => num(v, 0, X)], [6, m.weight, v => num(v, 1, X)], [7, m.vo2max, v => num(v, 1, X)]]
   .filter(r => r[1] && r[1].period).map(r => [X.m[r[0]], r[2](r[1].period.avg), r[1].baseline ? r[2](r[1].baseline.avg) : '–', r[1].delta_pct === null ? '–' : (r[1].delta_pct > 0 ? '+' : '') + num(r[1].delta_pct, 1, X) + ' %']);
 const kind = k => T[k] || k;
+const W = s.weight && s.weight.has ? s.weight : null;
+const sg = (v, X) => v === null || v === undefined ? '–' : (v > 0 ? '+' : '') + num(v, 1, X) + ' kg';
+const wRows = X => !W ? [] : [[X.wlast, num(W.last.kg, 1, X) + ' kg · ' + dmy(W.last.day, X === TX.en ? 'en' : 'de')], [X.w30, sg(W.change['30'] ? W.change['30'].kg : null, X)], [X.w90, sg(W.change['90'] ? W.change['90'].kg : null, X)],
+  ['BMI', W.bmi ? num(W.bmi.value, 1, X) : '–'], [X.fat, W.bodyfat ? num(W.bodyfat.pct, 1, X) + ' %' : '–'], [X.rate, W.rate_kg_week === null ? '–' : (W.rate_kg_week > 0 ? '+' : '') + num(W.rate_kg_week, 2, X) + ' kg/' + X.week_u],
+  [X.eta, W.goal ? num(W.goal, 1, X) + ' kg' + (W.eta && W.eta.date ? ' → ' + dmy(W.eta.date, X === TX.en ? 'en' : 'de') : '') : '–']];
+const corr = (s.correlations_90d ? s.correlations_90d.pairs : []).filter(c => c.strength !== 'none').sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 4);
+const CL = {
+  de: { sleep_rhr: 'Schlafdauer ↔ Ruhepuls (selber Tag)', sleep_rhr_next: 'Schlafdauer ↔ Ruhepuls (Folgetag)', steps_deep: 'Schritte ↔ Tiefschlafanteil (folgende Nacht)', steps_sleep: 'Schritte ↔ Schlafdauer (folgende Nacht)',
+    kcal_rhr_next: 'Aktive Energie ↔ Ruhepuls (Folgetag)', bedtime_sleep: 'Einschlafzeit ↔ Schlafdauer', workout_weight: 'Trainingsminuten/Woche ↔ Gewichtsänderung (Folgewoche)' },
+  it: { sleep_rhr: 'Durata del sonno ↔ FC a riposo (stesso giorno)', sleep_rhr_next: 'Durata del sonno ↔ FC a riposo (giorno dopo)', steps_deep: 'Passi ↔ quota di sonno profondo (notte seguente)', steps_sleep: 'Passi ↔ durata del sonno (notte seguente)',
+    kcal_rhr_next: 'Energia attiva ↔ FC a riposo (giorno dopo)', bedtime_sleep: 'Ora di addormentamento ↔ durata del sonno', workout_weight: 'Minuti di allenamento/settimana ↔ variazione di peso (settimana dopo)' },
+  en: { sleep_rhr: 'Sleep duration ↔ resting HR (same day)', sleep_rhr_next: 'Sleep duration ↔ resting HR (next day)', steps_deep: 'Steps ↔ deep sleep share (next night)', steps_sleep: 'Steps ↔ sleep duration (next night)',
+    kcal_rhr_next: 'Active energy ↔ resting HR (next day)', bedtime_sleep: 'Bedtime ↔ sleep duration', workout_weight: 'Workout minutes/week ↔ weight change (next week)' },
+};
+const cLines = X => corr.map(c => `${((X === TX.de ? CL.de : X === TX.it ? CL.it : CL.en)[c.key]) || (c.x + ' ↔ ' + c.y)}: r = ${num(c.r, 2, X)}, n = ${c.n} (${X.cs[c.strength]})`);
+const wMd = X => !W ? '' : `\n\n## ${X.wt}\n\n| | |\n|---|---|\n` + wRows(X).map(r => `| ${r[0]} | ${r[1]} |`).join('\n');
+const cMd = X => !corr.length ? '' : `\n\n## ${X.corr}\n\n` + cLines(X).map(l => '- ' + l).join('\n') + `\n\n${X.corrnote}`;
+const wHtml = X => !W ? '' : `<h2>${esc(X.wt)}</h2><table>${wRows(X).map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>').join('')}</table>`;
+const cHtml = X => !corr.length ? '' : `<h2>${esc(X.corr)}</h2><ul>${cLines(X).map(l => '<li>' + esc(l) + '</li>').join('')}</ul><p><small>${esc(X.corrnote)}</small></p>`;
 const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const table = X => `<table><tr><th></th><th>${esc(X.d7)}</th><th>${esc(X.d28)}</th><th>Δ</th></tr>${rowsFor(X).map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('')}</table>`;
 const mdTable = X => `| | ${X.d7} | ${X.d28} | Δ |\n|---|---|---|---|\n` + rowsFor(X).map(r => `| ${r.join(' | ')} |`).join('\n');
@@ -139,20 +168,20 @@ const d0 = new Date(p.to + 'T12:00:00Z'); const dn = (d0.getUTCDay() + 6) % 7; d
 const fy = d0.getUTCFullYear(); const f4 = new Date(Date.UTC(fy, 0, 4)); const wk = 1 + Math.round(((d0 - f4) / 864e5 - 3 + ((f4.getUTCDay() + 6) % 7)) / 7);
 const isoWeek = fy + '-' + String(wk).padStart(2, '0');
 // weekly report (app language)
-let md = `# ${T.week} ${dmy(p.to, lang)}\n\n${per(T, lang)}\n\n## ${T.sum}\n\n${summaryText}\n\n## ${T.keys}\n\n${mdTable(T)}\n\n${T.wo}: ${w.count} · ${hm(w.minutes)} · ${num(w.distance_km, 1, T)} km\n\n## ${T.tips}\n\n` + tips.map((t, i) => `${i + 1}. ${t}`).join('\n');
+let md = `# ${T.week} ${dmy(p.to, lang)}\n\n${per(T, lang)}\n\n## ${T.sum}\n\n${summaryText}\n\n## ${T.keys}\n\n${mdTable(T)}\n\n${T.wo}: ${w.count} · ${hm(w.minutes)} · ${num(w.distance_km, 1, T)} km${wMd(T)}${cMd(T)}\n\n## ${T.tips}\n\n` + tips.map((t, i) => `${i + 1}. ${t}`).join('\n');
 if (plan) { md += `\n\n## ${T.plan}\n\n` + plan.days.map(d => `- ${dmy(d.date, lang)}: ${kind(d.kind)}${d.note ? ' – ' + d.note : ''}`).join('\n') + (plan.bedtime ? `\n- ${T.bed}: ${plan.bedtime}` : '') + (plan.focus ? `\n\n${plan.focus}` : ''); }
 md += `\n\n---\n${T.disc} ${T.model}: ${model}\n`;
 const html = page(lang, T.week + ' ' + p.to, `<h1>${esc(T.week)}</h1><p>${esc(per(T, lang))}</p>
 <div class="g">${tile('Sonno / Schlaf', rg.sleep.score === null ? '–' : rg.sleep.score, '#7c6cf2')}${tile('Recupero / Erholung', rg.recovery.score === null ? '–' : rg.recovery.score, '#2bb673')}${tile('Movimento / Bewegung', rg.movement.score === null ? '–' : rg.movement.score, '#f2994a')}
 ${tile(T.m[2], m.sleep_total && m.sleep_total.period ? hm(m.sleep_total.period.avg) : '–', '#7c6cf2')}${tile(T.m[0], m.resting_hr && m.resting_hr.period ? num(m.resting_hr.period.avg, 1, T) : '–', '#e5484d')}${tile(T.m[4], m.steps && m.steps.period ? num(m.steps.period.avg, 0, T) : '–', '#f2994a')}
-${tile(T.wo, w.count + ' · ' + hm(w.minutes), '#22c55e')}</div>
-<h2>${esc(T.sum)}</h2><p>${esc(summaryText)}</p><h2>${esc(T.keys)}</h2>${table(T)}<h2>${esc(T.tips)}</h2><ol>${tips.map(t => '<li>' + esc(t) + '</li>').join('')}</ol>
+${tile(T.wo, w.count + ' · ' + hm(w.minutes), '#22c55e')}${W ? tile(T.wt, num(W.last.kg, 1, T) + ' kg', '#c084fc') : ''}</div>
+<h2>${esc(T.sum)}</h2><p>${esc(summaryText)}</p><h2>${esc(T.keys)}</h2>${table(T)}${wHtml(T)}${cHtml(T)}<h2>${esc(T.tips)}</h2><ol>${tips.map(t => '<li>' + esc(t) + '</li>').join('')}</ol>
 ${plan ? `<h2>${esc(T.plan)}</h2><ul>${plan.days.map(d => '<li><b>' + esc(dmy(d.date, lang)) + '</b> ' + esc(kind(d.kind)) + (d.note ? ' – ' + esc(d.note) : '') + '</li>').join('')}${plan.bedtime ? '<li>' + esc(T.bed) + ': ' + esc(plan.bedtime) + '</li>' : ''}</ul>${plan.focus ? '<p>' + esc(plan.focus) + '</p>' : ''}` : ''}
 <p><small>${esc(T.disc)} ${esc(T.model)}: ${esc(model)}</small></p><p><small><a href="__NC_URL__/apps/healthcheck/infographic">Infografik</a> · <a href="__NC_URL__/apps/healthcheck/report">${esc(R.doc)}</a></small></p>`);
 // doctor report (report language)
-const dmd = `# ${R.doc} ${R.kw} ${isoWeek}\n\n${per(R, rlang)}\n\n${R.src}\n\n## ${R.keys}\n\n${mdTable(R)}\n\n${R.wo}: ${w.count} · ${hm(w.minutes)}\n\n## ${R.docpar}\n\n${doctorText}\n\n---\n${R.disc} ${R.model}: ${model}\n`;
+const dmd = `# ${R.doc} ${R.kw} ${isoWeek}\n\n${per(R, rlang)}\n\n${R.src}\n\n## ${R.keys}\n\n${mdTable(R)}\n\n${R.wo}: ${w.count} · ${hm(w.minutes)}${wMd(R)}\n\n## ${R.docpar}\n\n${doctorText}\n\n---\n${R.disc} ${R.model}: ${model}\n`;
 const dhtml = page(rlang, R.doc + ' ' + isoWeek, `<h1>${esc(R.doc)} · ${esc(R.kw)} ${esc(isoWeek)}</h1><p>${esc(per(R, rlang))}<br><small>${esc(R.src)}</small></p>
-<h2>${esc(R.keys)}</h2>${table(R)}<p>${esc(R.wo)}: ${w.count} · ${esc(hm(w.minutes))}</p><h2>${esc(R.docpar)}</h2><p>${esc(doctorText)}</p><p><small>${esc(R.disc)} ${esc(R.model)}: ${esc(model)}</small></p>`);
+<h2>${esc(R.keys)}</h2>${table(R)}<p>${esc(R.wo)}: ${w.count} · ${esc(hm(w.minutes))}</p>${wHtml(R)}<h2>${esc(R.docpar)}</h2><p>${esc(doctorText)}</p><p><small>${esc(R.disc)} ${esc(R.model)}: ${esc(model)}</small></p>`);
 const base = 'Wochenbericht-' + p.to, dbase = 'Arztbericht-' + isoWeek + '.' + rlang;
 const report = { summary: summaryText, tips, doctor: doctorText, doctor_lang: rlang, plan, model, period_from: p.from, period_to: p.to, report_path: '/Health/Reports/' + base + '.html' };
 return [

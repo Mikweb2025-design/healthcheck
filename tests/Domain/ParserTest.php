@@ -64,7 +64,9 @@ class ParserTest extends TestCase {
 		$this->assertSame(55.0, $r['resting_hr'], 'current Huawei account wins');
 		$this->assertSame(0.97, $r['spo2_avg']);
 		$this->assertSame(0.96, $r['spo2_min']);
-		$this->assertSame(81.9, $r['weight'], 'last value of the day');
+		$this->assertSame(81.9, $r['weight'], 'last valid value of the day, a later 0 kg is ignored');
+		$this->assertSame(26.4, $r['bmi']);
+		$this->assertSame(81.65, $this->parsed()['days']['2026-03-08']['weight'], 'pounds converted');
 		$this->assertSame(0.215, $r['bodyfat']);
 		$this->assertSame('HUAWEI Health: Europa', $r['src']);
 	}

@@ -29,6 +29,10 @@ return [
 		['name' => 'api#reports', 'url' => '/api/ai/reports', 'verb' => 'GET'],
 		['name' => 'api#chats', 'url' => '/api/chat', 'verb' => 'GET'],
 		['name' => 'api#ask', 'url' => '/api/chat', 'verb' => 'POST'],
+		['name' => 'api#weights', 'url' => '/api/weights', 'verb' => 'GET'],
+		['name' => 'api#addWeight', 'url' => '/api/weights', 'verb' => 'POST'],
+		['name' => 'api#deleteWeight', 'url' => '/api/weights/{id}', 'verb' => 'DELETE', 'requirements' => ['id' => '\d+']],
+		['name' => 'api#aiTask', 'url' => '/api/ai/task/{kind}', 'verb' => 'POST', 'requirements' => ['kind' => '[a-z]+']],
 		['name' => 'api#deleteAll', 'url' => '/api/data', 'verb' => 'DELETE'],
 
 		['name' => 'api#automationSummary', 'url' => '/api/automation/summary', 'verb' => 'GET'],

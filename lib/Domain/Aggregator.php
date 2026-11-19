@@ -162,7 +162,10 @@ final class Aggregator {
 			case 'active_kcal':
 				return $u === 'kj' ? $v / 4.184 : ($u === 'cal' ? $v / 1000 : $v);
 			case 'weight':
-				return $u === 'lb' ? $v * 0.45359237 : ($u === 'g' ? $v / 1000 : $v);
+				$kg = match ($u) { 'lb', 'lbs' => $v * 0.45359237, 'g' => $v / 1000, 'st' => $v * 6.35029318, default => $v };
+				return ($kg <= 20 || $kg > 300) ? null : $kg; // scales send 0 or junk now and then
+			case 'bmi':
+				return ($v < 10 || $v > 80) ? null : $v;
 			case 'spo2':
 			case 'bodyfat':
 				$f = $v > 1.0 ? $v / 100 : $v;

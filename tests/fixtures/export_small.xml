@@ -25,6 +25,9 @@
  <Record type="HKQuantityTypeIdentifierOxygenSaturation" sourceName="HUAWEI Health: Europa" unit="%" startDate="2026-03-09 04:00:00 +0100" endDate="2026-03-09 04:00:00 +0100" value="0.98"/>
  <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="HUAWEI Health: Europa" unit="kg" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="81.2"/>
  <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="HUAWEI Health: Europa" unit="kg" startDate="2026-03-09 20:00:00 +0100" endDate="2026-03-09 20:00:00 +0100" value="81.9"/>
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="HUAWEI Health: Europa" unit="kg" startDate="2026-03-09 21:00:00 +0100" endDate="2026-03-09 21:00:00 +0100" value="0"/>
+ <Record type="HKQuantityTypeIdentifierBodyMass" sourceName="Kurzbefehle" unit="lb" startDate="2026-03-08 07:00:00 +0100" endDate="2026-03-08 07:00:00 +0100" value="180"/>
+ <Record type="HKQuantityTypeIdentifierBodyMassIndex" sourceName="HUAWEI Health: Europa" unit="count" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="26.4"/>
  <Record type="HKQuantityTypeIdentifierBodyFatPercentage" sourceName="HUAWEI Health: Europa" unit="%" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="0.215"/>
  <Record type="HKQuantityTypeIdentifierDietaryWater" sourceName="Other" unit="mL" startDate="2026-03-09 07:00:00 +0100" endDate="2026-03-09 07:00:00 +0100" value="250"/>
  <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="HUAWEI Health: Europa" startDate="2026-03-08 23:00:00 +0100" endDate="2026-03-09 01:00:00 +0100" value="HKCategoryValueSleepAnalysisAsleepCore"/>

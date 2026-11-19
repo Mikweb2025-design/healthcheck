@@ -180,6 +180,26 @@ class ApiController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	public function weights(): JSONResponse {
+		return $this->run(fn ($uid) => ['entries' => array_reverse($this->store->weights($uid))]);
+	}
+
+	#[NoAdminRequired]
+	public function addWeight(): JSONResponse {
+		return $this->run(fn ($uid) => $this->data->addWeight($uid, $this->request->getParams()));
+	}
+
+	#[NoAdminRequired]
+	public function deleteWeight(int $id): JSONResponse {
+		return $this->run(fn ($uid) => $this->data->deleteWeight($uid, $id));
+	}
+
+	#[NoAdminRequired]
+	public function aiTask(string $kind): JSONResponse {
+		return $this->run(fn ($uid) => $this->data->aiTask($uid, $kind, $this->request->getParams()));
+	}
+
+	#[NoAdminRequired]
 	public function deleteAll(bool $calendar = true): JSONResponse {
 		return $this->run(fn ($uid) => $this->data->deleteAll($uid, $calendar));
 	}

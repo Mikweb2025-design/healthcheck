@@ -117,6 +117,45 @@ a { color: inherit; }
 .hc-info-row { display: grid; grid-template-columns: 1fr; gap: 0 12px; } @media (min-width: 720px) { .hc-info-row { grid-template-columns: 1fr 1fr; } }
 .hc-heat-wrap { overflow-x: auto; } .hc-heat { min-width: 200px; }
 .hc-records { list-style: none; padding: 0; margin: 0; } .hc-records li { padding: 5px 0; border-bottom: 1px solid var(--line); }
+
+/* 0.1.2: tooltips, annotations, weight, AI cards, correlations */
+.hc-tip-line { stroke: var(--fg); stroke-opacity: .35; stroke-dasharray: 3 3; }
+.hc-tip-dot { stroke: var(--card); stroke-width: 2; }
+.hc-tip-box { fill: var(--fg); opacity: .92; } .hc-tip-t1 { font-size: 12px; font-weight: 700; fill: var(--bg); } .hc-tip-t2 { font-size: 11px; fill: var(--bg); opacity: .85; }
+.hc-hit { cursor: crosshair; touch-action: pan-y; }
+.hc-marker { fill: var(--ok); opacity: .75; } .hc-anom { fill: none; stroke: var(--accent); stroke-width: 2; } .hc-anom-dot { fill: var(--accent); }
+.hc-dot { opacity: .8; } .hc-last { stroke: var(--card); stroke-width: 2; } .hc-ma { animation-delay: .3s; }
+.hc-band { opacity: .10; } .hc-area { opacity: 1; }
+.hc-empty-box { fill: none; stroke: var(--line); stroke-dasharray: 6 6; } .hc-empty-ico { font-size: 26px; fill: var(--mu); }
+.hc-night { animation: hc-fade .6s ease both; } .hc-hbar { transform-box: fill-box; transform-origin: left; animation: hc-grow .7s ease both; }
+.hc-ax-l { font-size: 12px; } .hc-svg text { font-family: inherit; }
+.hc-btn-small { min-height: 30px; padding: 4px 10px; font-size: 13px; border-radius: 9px; }
+.hc-hint-body { flex: 1; } .hc-ai-out { margin: 6px 0 10px; }
+.hc-ai-box { background: color-mix(in srgb, var(--fg) 4%, transparent); border-radius: 12px; padding: 8px 12px; }
+.hc-ai-box h4, .hc-cu h4 { margin: 8px 0 4px; font-size: 13px; } .hc-ai-box ul, .hc-cu ul { margin: 0; padding-left: 18px; }
+.hc-doctor-note { background: color-mix(in srgb, #2b8fd6 10%, transparent); border-radius: 10px; padding: 6px 10px; }
+.hc-weight-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.hc-chips-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.hc-pill { display: inline-flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; padding: 4px 10px; min-width: 64px; }
+.hc-pill small { font-size: 11px; color: var(--mu); } .hc-pill b { font-size: 14px; }
+.hc-pill-down b { color: #2b8fd6; } .hc-pill-up b { color: #d97706; }
+.hc-eta { font-weight: 600; margin: 6px 0; }
+.hc-weight-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; margin-top: 10px; }
+.hc-weight-form .hc-btn { grid-column: 1 / -1; }
+@media (min-width: 640px) { .hc-weight-form { grid-template-columns: 1fr 1fr 1fr auto; } .hc-weight-form .hc-btn { grid-column: auto; } }
+.hc-grow { flex: 1; align-self: center; }
+.hc-select, .hc-field input[type=date] { font: inherit; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+.hc-cu-grid { display: grid; grid-template-columns: 1fr; gap: 8px; } @media (min-width: 640px) { .hc-cu-grid { grid-template-columns: 1fr 1fr; } }
+.hc-cu { border-radius: 12px; padding: 6px 12px 10px; border: 1px solid var(--line); }
+.hc-cu-good { background: color-mix(in srgb, var(--ok) 9%, transparent); } .hc-cu-watch { background: color-mix(in srgb, var(--warn) 10%, transparent); }
+.hc-cu-act { background: color-mix(in srgb, #7c6cf2 9%, transparent); } .hc-cu-doc { background: color-mix(in srgb, #2b8fd6 9%, transparent); }
+.hc-corr-list li { display: block; } .hc-corr-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.hc-corr-bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 4px 0; }
+.hc-corr-fill { display: block; height: 100%; border-radius: 4px; animation: hc-grow .9s ease both; transform-origin: left; }
+.hc-corr-pos { background: #7c6cf2; } .hc-corr-neg { background: #14b8a6; }
+.hc-questions li { margin-bottom: 6px; }
+@media (max-width: 420px) { .hc-card { padding: 13px; } .hc-big { font-size: 26px; } .hc-tab { padding: 8px 11px; } .hc-ring-num { font-size: 28px; } }
+@media print { .hc-tip, .hc-hit { display: none; } .hc-rep-weight, .hc-rep-q { break-inside: avoid; } }
 @media print {
   @page { size: A4; margin: 14mm; }
   :root { --bg: #fff; --card: #fff; --fg: #000; --mu: #444; --line: #ccc; }

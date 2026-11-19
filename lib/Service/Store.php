@@ -119,7 +119,73 @@ class Store {
 			$out[] = self::dayRow($r);
 		}
 		$res->closeCursor();
-		return $out;
+		return $this->withManualWeights($uid, $out, $from, $to);
+	}
+
+	/** manual weigh-ins win over imported values of the same day (and add days without other data) */
+	private function withManualWeights(string $uid, array $rows, ?string $from, ?string $to): array {
+		$manual = $this->weights($uid, $from, $to);
+		if ($manual === []) {
+			return $rows;
+		}
+		$idx = [];
+		foreach ($rows as $i => $r) {
+			$idx[$r['day']] = $i;
+		}
+		foreach ($manual as $m) {
+			if (!isset($idx[$m['day']])) {
+				$rows[] = ['day' => $m['day']] + array_fill_keys(Aggregator::COLUMNS, null);
+				$idx[$m['day']] = count($rows) - 1;
+			}
+			$i = $idx[$m['day']];
+			$rows[$i]['weight'] = $m['weight'];
+			if ($m['bodyfat'] !== null) {
+				$rows[$i]['bodyfat'] = round($m['bodyfat'] / 100, 4);
+			}
+			$rows[$i]['weight_src'] = 'manual';
+		}
+		usort($rows, fn ($a, $b) => strcmp($a['day'], $b['day']));
+		return $rows;
+	}
+
+	/** @return list<array{id:int,day:string,weight:float,bodyfat:?float,createdAt:int}> bodyfat in percent */
+	public function weights(string $uid, ?string $from = null, ?string $to = null): array {
+		$q = $this->db->getQueryBuilder();
+		$q->select('*')->from('hc_weight')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)));
+		if ($from !== null) {
+			$q->andWhere($q->expr()->gte('day', $q->createNamedParameter($from)));
+		}
+		if ($to !== null) {
+			$q->andWhere($q->expr()->lte('day', $q->createNamedParameter($to)));
+		}
+		$q->orderBy('day', 'ASC');
+		return array_map(fn ($r) => ['id' => (int)$r['id'], 'day' => $r['day'], 'weight' => round((float)$r['weight'], 2),
+			'bodyfat' => $r['bodyfat'] === null ? null : round((float)$r['bodyfat'], 1), 'createdAt' => (int)$r['created_at']], $q->executeQuery()->fetchAll());
+	}
+
+	/** one manual weigh-in per day: insert or replace */
+	public function saveWeight(string $uid, string $day, float $kg, ?float $fatPct, int $now): void {
+		$this->db->beginTransaction();
+		try {
+			$d = $this->db->getQueryBuilder();
+			$d->delete('hc_weight')->where($d->expr()->eq('uid', $d->createNamedParameter($uid)))->andWhere($d->expr()->eq('day', $d->createNamedParameter($day)))->executeStatement();
+			$q = $this->db->getQueryBuilder();
+			$q->insert('hc_weight')->values([
+				'uid' => $q->createNamedParameter($uid), 'day' => $q->createNamedParameter($day), 'weight' => $q->createNamedParameter((string)$kg),
+				'bodyfat' => $q->createNamedParameter($fatPct === null ? null : (string)$fatPct, $fatPct === null ? IQueryBuilder::PARAM_NULL : IQueryBuilder::PARAM_STR),
+				'created_at' => $q->createNamedParameter($now, IQueryBuilder::PARAM_INT),
+			])->executeStatement();
+			$this->db->commit();
+		} catch (\Throwable $e) {
+			$this->db->rollBack();
+			throw $e;
+		}
+	}
+
+	public function deleteWeight(string $uid, int $id): bool {
+		$q = $this->db->getQueryBuilder();
+		return $q->delete('hc_weight')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))
+			->andWhere($q->expr()->eq('id', $q->createNamedParameter($id, IQueryBuilder::PARAM_INT)))->executeStatement() > 0;
 	}
 
 	/** @return list<array> ascending by start */
@@ -233,26 +299,26 @@ class Store {
 		return array_map('intval', $q->executeQuery()->fetchAll(\PDO::FETCH_COLUMN));
 	}
 
-	public function saveChat(string $uid, string $question, string $answer, string $model, string $status, int $now): int {
+	public function saveChat(string $uid, string $question, string $answer, string $model, string $status, int $now, string $kind = 'chat'): int {
 		$q = $this->db->getQueryBuilder();
 		$q->insert('hc_chat')->values([
 			'uid' => $q->createNamedParameter($uid), 'created_at' => $q->createNamedParameter($now, IQueryBuilder::PARAM_INT),
 			'question' => $q->createNamedParameter($question), 'answer' => $q->createNamedParameter($answer),
-			'model' => $q->createNamedParameter($model), 'status' => $q->createNamedParameter($status),
+			'model' => $q->createNamedParameter($model), 'status' => $q->createNamedParameter($status), 'kind' => $q->createNamedParameter($kind),
 		])->executeStatement();
 		return $q->getLastInsertId();
 	}
 
-	public function chats(string $uid, int $limit = 20): array {
+	public function chats(string $uid, int $limit = 20, string $kind = 'chat'): array {
 		$q = $this->db->getQueryBuilder();
-		$q->select('*')->from('hc_chat')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->orderBy('created_at', 'DESC')->addOrderBy('id', 'DESC')->setMaxResults($limit);
+		$q->select('*')->from('hc_chat')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->andWhere($q->expr()->eq('kind', $q->createNamedParameter($kind)))->orderBy('created_at', 'DESC')->addOrderBy('id', 'DESC')->setMaxResults($limit);
 		return array_map(fn ($r) => ['id' => (int)$r['id'], 'at' => (int)$r['created_at'], 'question' => $r['question'], 'answer' => $r['answer'], 'model' => $r['model'], 'status' => $r['status']],
 			$q->executeQuery()->fetchAll());
 	}
 
 	public function deleteAll(string $uid): array {
 		$out = [];
-		foreach (['hc_day', 'hc_workout', 'hc_import', 'hc_ai', 'hc_chat'] as $t) {
+		foreach (['hc_day', 'hc_workout', 'hc_import', 'hc_ai', 'hc_chat', 'hc_weight'] as $t) {
 			$q = $this->db->getQueryBuilder();
 			$out[$t] = $q->delete($t)->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->executeStatement();
 		}

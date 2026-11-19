@@ -8,6 +8,9 @@ declare(strict_types=1);
 namespace OCA\HealthCheck\Service;
 
 use OCA\HealthCheck\Domain\Agent;
+use OCA\HealthCheck\Domain\AiTasks;
+use OCA\HealthCheck\Domain\Correlations;
+use OCA\HealthCheck\Domain\Weight;
 use OCA\HealthCheck\Domain\Chat;
 use OCA\HealthCheck\Domain\Infographic;
 use OCA\HealthCheck\Domain\Insights;
@@ -62,6 +65,11 @@ class DataService {
 			'progress' => $lastDay === null ? null : Agent::progress($goals, $rows, $workouts, $lastDay),
 			'streaks' => ['steps' => Agent::streak($rows, 'steps', $goals['steps']), 'sleep' => Agent::streak($rows, 'sleep_total', $goals['sleep_min'])],
 			'recentWorkouts' => array_reverse(array_slice($workouts, -5)),
+			'weight' => Weight::stats($rows, $goals['weight'], $this->import->today($uid)),
+			'weightTrend' => Weight::movingAverage(array_values(array_filter(Weight::points($rows), fn ($p) => $p['day'] >= Insights::addDays($this->import->today($uid), -365)))),
+			'weightEntries' => array_reverse(array_slice($this->store->weights($uid), -10)),
+			'correlations' => Correlations::compute($rows, $workouts, 365),
+			'aiLatest' => $this->aiLatest($uid),
 			'ai' => $ai === null ? null : $ai + ['planEvaluation' => Agent::evaluatePlan($ai['plan'], $rows, $workouts, $this->settings->tz($uid))],
 			'settings' => $this->settings->forUser($uid),
 			'calendar' => $this->calendar->info($uid),
@@ -84,6 +92,9 @@ class DataService {
 			'days' => Insights::range($rows, $from, $end),
 			'workouts' => array_values(array_filter($workouts, fn ($w) => $w['day'] >= $from && $w['day'] <= $end)),
 			'ai' => $ai === null ? null : ['createdAt' => $ai['createdAt'], 'model' => $ai['model'], 'doctor' => $ai['doctor'], 'doctorLang' => $ai['doctorLang'], 'to' => $ai['to']],
+			'weight' => Weight::stats($rows, $this->settings->goals($uid)['weight'], $this->import->today($uid)),
+			'weightTrend' => Weight::movingAverage(Weight::points(Insights::range($rows, Insights::addDays($end, -364), $end))),
+			'doctorQuestions' => $this->aiLatest($uid)['doctorq'] ?? null,
 			'status' => $this->status($uid),
 			'lang' => $this->settings->lang($uid),
 			'reportLang' => $this->settings->reportLang($uid),
@@ -122,6 +133,8 @@ class DataService {
 				'targets' => Agent::weeklyTargets($goals, $rows, $workouts, $planStart)],
 			'previous_plan' => $last === null ? null : ['plan' => $last['plan'], 'evaluation' => Agent::evaluatePlan($last['plan'], $rows, $workouts, $this->settings->tz($uid))],
 			'memory' => array_map(fn ($r) => ['period_to' => $r['to'], 'summary' => mb_substr($r['summary'], 0, 1200)], $prev),
+			'weight' => Weight::stats($rows, $goals['weight'], $this->import->today($uid)),
+			'correlations_90d' => Correlations::compute($rows, $workouts, 90),
 		];
 	}
 
@@ -180,6 +193,97 @@ class DataService {
 			return ['question' => $q, 'answer' => $res['answer'], 'model' => $res['model'], 'at' => $now];
 		} catch (\Throwable $e) {
 			$this->store->saveChat($uid, $q, '', '', 'error', $now);
+			throw $e;
+		}
+	}
+
+	// ---- manual weigh-ins ----------------------------------------------------------------------------------------
+	public function addWeight(string $uid, array $in): array {
+		$day = (string)($in['day'] ?? '') ?: $this->import->today($uid);
+		$kg = str_replace(',', '.', (string)($in['weight'] ?? ''));
+		$fat = str_replace(',', '.', (string)($in['bodyfat'] ?? ''));
+		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) || $day > $this->import->today($uid) || $day < '2000-01-01') {
+			throw new \InvalidArgumentException('day');
+		}
+		if (!is_numeric($kg) || (float)$kg <= 20 || (float)$kg > 300) {
+			throw new \InvalidArgumentException('weight');
+		}
+		if ($fat !== '' && (!is_numeric($fat) || (float)$fat < 2 || (float)$fat > 70)) {
+			throw new \InvalidArgumentException('bodyfat');
+		}
+		$this->store->saveWeight($uid, $day, round((float)$kg, 2), $fat === '' ? null : round((float)$fat, 1), $this->time->getTime());
+		$this->notify->dismiss($uid, 'nudge-weigh_in');
+		return ['entries' => array_reverse($this->store->weights($uid))];
+	}
+
+	public function deleteWeight(string $uid, int $id): array {
+		if (!$this->store->deleteWeight($uid, $id)) {
+			throw new \DomainException('not_found');
+		}
+		return ['entries' => array_reverse($this->store->weights($uid))];
+	}
+
+	// ---- on-demand AI functions ----------------------------------------------------------------------------------
+	/** latest stored result per kind (check-up, doctor questions) */
+	public function aiLatest(string $uid): array {
+		$out = [];
+		foreach (['checkup', 'doctorq'] as $k) {
+			$c = $this->store->chats($uid, 1, $k)[0] ?? null;
+			if ($c !== null && $c['status'] === 'ok') {
+				$out[$k] = ['at' => $c['at'], 'model' => $c['model'], 'request' => $c['question'], 'result' => json_decode((string)$c['answer'], true)];
+			}
+		}
+		return $out;
+	}
+
+	public function aiTask(string $uid, string $kind, array $in): array {
+		if (!in_array($kind, AiTasks::KINDS, true)) {
+			throw new \InvalidArgumentException('kind');
+		}
+		$now = $this->time->getTime();
+		if (!\OCA\HealthCheck\Domain\Chat::allowed($this->store->chatTimes($uid, $now - 86400), $now)) {
+			throw new \OverflowException('rate_limited');
+		}
+		$rows = $this->store->days($uid);
+		$workouts = $this->store->workouts($uid);
+		$goals = $this->settings->goals($uid);
+		$today = $this->import->today($uid);
+		$lang = $this->settings->lang($uid);
+		if ($kind === 'explain') {
+			$key = (string)($in['key'] ?? '');
+			$w = null;
+			foreach (Insights::warnings($rows) as $x) {
+				if ($x['key'] === $key) {
+					$w = $x;
+				}
+			}
+			if ($w === null) {
+				throw new \InvalidArgumentException('key');
+			}
+			$messages = AiTasks::explainMessages(AiTasks::explainContext($w, $rows, $workouts), $lang);
+			$request = 'explain:' . $key . ':' . $w['day'];
+		} else {
+			$days = (int)($in['days'] ?? 30);
+			$days = in_array($days, [30, 90, 365], true) ? $days : 30;
+			$ctx = AiTasks::periodContext($rows, $workouts, $goals, $days, $today);
+			if ($kind === 'doctorq') {
+				$lang = in_array((string)($in['lang'] ?? ''), ['de', 'en', 'it'], true) ? (string)$in['lang'] : $this->settings->reportLang($uid);
+				$messages = AiTasks::doctorMessages($ctx, $lang);
+			} else {
+				$messages = AiTasks::checkupMessages($ctx, $lang);
+			}
+			$request = $kind . ':' . $days . ':' . $lang;
+		}
+		try {
+			$res = $this->outbound->chat($messages);
+			$clean = AiTasks::clean($kind, AiTasks::json($res['answer']));
+			if ($clean === null) {
+				throw new \RuntimeException('ai_empty');
+			}
+			$this->store->saveChat($uid, $request, (string)json_encode($clean, JSON_UNESCAPED_UNICODE), $res['model'], 'ok', $now, $kind);
+			return ['kind' => $kind, 'request' => $request, 'result' => $clean, 'model' => $res['model'], 'at' => $now];
+		} catch (\Throwable $e) {
+			$this->store->saveChat($uid, $request, '', '', 'error', $now, $kind);
 			throw $e;
 		}
 	}

@@ -113,7 +113,8 @@
 
     // early warning
     var ws = ov.warnings || [];
-    main.appendChild(card(t('hints_title'), ws.length ? ws.map(function (w) { return h('div', { class: 'hc-hint' }, [h('span', { class: 'hc-hint-dot' }), h('p', { text: warningText(w) })]); }).concat([h('p', { class: 'hc-muted', text: t('hints_doctor') }), disclaimer()]) : [h('p', { text: t('hints_none') }), disclaimer()], { id: 'hc-hints', cls: ws.length ? 'hc-card-hint' : '' }));
+    main.appendChild(card(t('hints_title'), ws.length ? ws.map(hintItem).concat([h('p', { class: 'hc-muted', text: t('hints_doctor') }), disclaimer()]) : [h('p', { text: t('hints_none') }), disclaimer()], { id: 'hc-hints', cls: ws.length ? 'hc-card-hint' : '' }));
+    main.appendChild(weightCard(ov));
 
     // last night + vitals
     var lastSleep = null, lastVitals = null;
@@ -143,6 +144,73 @@
     ]));
     main.appendChild(installHint());
   }
+  /* one early hint with an on-demand AI explanation ("why?") */
+  function hintItem(w) {
+    var out = h('div', { class: 'hc-ai-out' });
+    var b = h('button', { type: 'button', class: 'hc-btn hc-btn-small', text: t('why') });
+    b.addEventListener('click', function () {
+      b.disabled = true; HC.clear(out).appendChild(h('p', { class: 'hc-muted', text: t('ask_thinking') }));
+      HC.api('POST', '/api/ai/task/explain', { key: w.key }).then(function (r) {
+        var x = r.result;
+        HC.clear(out).appendChild(h('div', { class: 'hc-ai-box' }, [x.what ? h('p', { text: x.what }) : null,
+          x.possible.length ? h('h4', { text: t('why_possible') }) : null, x.possible.length ? h('ul', {}, x.possible.map(function (s) { return h('li', { text: s }); })) : null,
+          x.do.length ? h('h4', { text: t('why_do') }) : null, x.do.length ? h('ul', {}, x.do.map(function (s) { return h('li', { text: s }); })) : null,
+          x.doctor ? h('p', { class: 'hc-doctor-note', text: '🩺 ' + x.doctor }) : null, h('p', { class: 'hc-muted hc-small', text: r.model + ' · ' + t('ai_note') })]));
+      }, function (e) { HC.clear(out).appendChild(h('p', { class: 'hc-a-err', text: errText(e) })); b.disabled = false; });
+    });
+    return h('div', { class: 'hc-hint' }, [h('span', { class: 'hc-hint-dot' }), h('div', { class: 'hc-hint-body' }, [h('p', { text: warningText(w) }), b, out])]);
+  }
+
+  /* ---------- weight card with quick entry ---------- */
+  var BMI_COL = { under: '#3ba7e0', normal: '#2bb673', over: '#f2994a', obese: '#e5484d' };
+  function weightCard(ov) {
+    var w = ov.weight, g = ov.settings.goals, body = [];
+    if (w && w.has) {
+      if (w.reminder) { body.push(h('div', { class: 'hc-banner hc-banner-warn', text: t('w_reminder', { days: w.age_days, day: HC.day(w.last.day) }) })); }
+      var chg = function (d) { var c = w.change[d]; return c ? HC.signed(c.kg, 1, 'kg') : '–'; };
+      body.push(h('div', { class: 'hc-weight-top' }, [
+        h('div', {}, [h('div', { class: 'hc-big', style: 'color:' + COL.weight, text: HC.num(w.last.kg, 1) + ' kg' }), h('div', { class: 'hc-muted', text: HC.day(w.last.day) + (w.last.manual ? ' · ' + t('w_manual') : '') })]),
+        h('div', { class: 'hc-chips-row' }, [7, 30, 90].map(function (d) { var c = w.change[d]; return h('span', { class: 'hc-pill' + (c && c.kg < 0 ? ' hc-pill-down' : c && c.kg > 0 ? ' hc-pill-up' : '') }, [h('small', { text: t('w_change_d', { n: d }) }), h('b', { text: chg(d) })]); }))
+      ]));
+      var meta = [];
+      if (w.bmi) { meta.push(h('span', { class: 'hc-pill', style: 'border-color:' + BMI_COL[w.bmi.category] }, [h('small', { text: 'BMI' }), h('b', { text: HC.num(w.bmi.value, 1) + ' · ' + t('bmi_' + w.bmi.category) })])); }
+      if (w.bodyfat) { meta.push(h('span', { class: 'hc-pill' }, [h('small', { text: t('m_bodyfat') }), h('b', { text: HC.num(w.bodyfat.pct, 1) + ' %' })])); }
+      if (w.rate_kg_week !== null) { meta.push(h('span', { class: 'hc-pill' }, [h('small', { text: t('w_rate') }), h('b', { text: HC.signed(w.rate_kg_week, 2, 'kg/' + t('u_week')) })])); }
+      body.push(h('div', { class: 'hc-chips-row' }, meta));
+      if (g.weight) {
+        var e = w.eta;
+        body.push(h('p', { class: 'hc-eta', text: !e ? t('w_goal_only', { goal: HC.num(g.weight, 1) }) : e.reached ? t('w_goal_reached', { goal: HC.num(g.weight, 1) })
+          : e.days ? t('w_eta', { goal: HC.num(g.weight, 1), date: HC.day(e.date), weeks: Math.round(e.days / 7) }) : t('w_eta_away', { goal: HC.num(g.weight, 1) }) }));
+      }
+      var pts = (ov.weightTrend || []).map(function (p) { return { x: p.day, y: p.weight }; });
+      body.push(C.line(pts, { color: COL.weight, ma: pts.length >= 10 ? 7 : 0, goal: g.weight, goalLabel: t('target'), fmt: function (v) { return HC.num(v, 1); }, unit: 'kg', empty: t('no_data'), dots: true }));
+      body.push(h('p', { class: 'hc-muted hc-small', text: t('w_chart_note', { n: w.count }) }));
+    } else {
+      body.push(h('p', { text: t('w_none') }));
+    }
+    // quick entry
+    var today = ov.status.today;
+    var f = h('form', { class: 'hc-weight-form' }, [
+      h('label', { class: 'hc-field' }, [h('span', { text: t('w_today') + ' (kg)' }), h('input', { name: 'weight', type: 'number', step: '0.1', min: 21, max: 300, inputmode: 'decimal', required: true, placeholder: w && w.has ? HC.num(w.last.kg, 1) : '' })]),
+      h('label', { class: 'hc-field' }, [h('span', { text: t('m_bodyfat') + ' % (' + t('optional') + ')' }), h('input', { name: 'bodyfat', type: 'number', step: '0.1', min: 2, max: 70, inputmode: 'decimal' })]),
+      h('label', { class: 'hc-field' }, [h('span', { text: t('date') }), h('input', { name: 'day', type: 'date', value: today, max: today })]),
+      h('button', { type: 'submit', class: 'hc-btn hc-btn-primary', text: t('save') })
+    ]);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      HC.api('POST', '/api/weights', { weight: f.elements.weight.value, bodyfat: f.elements.bodyfat.value, day: f.elements.day.value })
+        .then(function () { toast(t('saved')); return load(); }).then(route, function (er) { toast(errText(er), true); });
+    });
+    body.push(f);
+    if (ov.weightEntries && ov.weightEntries.length) {
+      body.push(h('details', { class: 'hc-how' }, [h('summary', { text: t('w_entries', { n: ov.weightEntries.length }) }), h('ul', { class: 'hc-list' }, ov.weightEntries.map(function (en) {
+        return h('li', {}, [h('div', { class: 'hc-grow', text: HC.day(en.day) + ' · ' + HC.num(en.weight, 1) + ' kg' + (en.bodyfat !== null ? ' · ' + HC.num(en.bodyfat, 1) + ' %' : '') }),
+          btn(t('delete'), function () { if (root.confirm(t('w_delete_confirm'))) { HC.api('DELETE', '/api/weights/' + en.id).then(function () { return load(); }).then(route); } }, 'hc-btn-small hc-btn-danger')]);
+      }))]));
+    }
+    return card(t('w_title'), body, { id: 'hc-weight' });
+  }
+
   function findRow(day) { var r = null; state.ov.latest.forEach(function (x) { if (x.day === day) { r = x; } }); return r || {}; }
 
   function ringParts(kind, r) {
@@ -253,9 +321,14 @@
     var bucket = HC.bucketFor(Math.min(days, span));
     var note = bucket === 'day' ? '' : t('bucket_' + bucket);
     var chart = function (title, el, sub) { box.appendChild(card(title, [el, sub ? h('p', { class: 'hc-muted', text: sub }) : null], { cls: 'hc-chart' })); };
+    var daily = bucket === 'day';
+    var wdays = s.workouts.map(function (w) { return w.day; });
+    var lineOpts = function (color, fmt, unit, extra) { return Object.assign({ color: color, band: 'auto', ma: daily ? 7 : 0, anomalies: daily, empty: t('no_data'), fmt: fmt, unit: unit }, extra || {}); };
     var rhr = HC.series(rows, 'resting_hr', bucket);
-    var b = state.ov.week && state.ov.week.metrics.resting_hr.baseline;
-    chart(t('m_resting_hr') + ' (bpm)', C.line(rhr, { color: COL.heart, band: b && bucket === 'day' ? [b.avg - 3, b.avg + 3] : null, empty: t('no_data'), fmt: function (v) { return HC.num(v, 0); } }), note || (b ? t('band_note', { v: HC.num(b.avg, 1) }) : ''));
+    var st = C.meanSd(rhr.map(function (p) { return p.y; }));
+    chart(t('m_resting_hr') + ' (bpm)', C.line(rhr, lineOpts(COL.heart, function (v) { return HC.num(v, 0); }, 'bpm', { markers: wdays, markerLabel: t('m_workouts') })),
+      (note ? note + ' · ' : '') + (st && rhr.length >= 10 ? t('band_sd', { lo: HC.num(st.mean - st.sd, 1), hi: HC.num(st.mean + st.sd, 1), n: st.n }) : '') + (daily ? ' · ' + t('ma_note') + ' · ' + t('marker_note') : ''));
+    chart(t('c_sleepwin'), C.sleepWindow(rows.slice(-Math.min(rows.length, 120)), { colors: { deep: COL.deep, core: COL.core, rem: COL.rem, awake: COL.awake }, empty: t('no_data') }), t('sleepwin_note'));
     // sleep stages
     var st = {};
     rows.forEach(function (r) { if (r.sleep_total !== null) { var k = bucket === 'week' ? HC.mondayOf(r.day) : bucket === 'month' ? r.day.slice(0, 7) + '-01' : r.day; (st[k] = st[k] || []).push(r); } });
@@ -265,19 +338,20 @@
       var rest = Math.max(0, tot - deep - rem - core);
       return { x: k, parts: [deep / 60, core / 60, rem / 60, rest / 60] };
     });
-    chart(t('c_sleep'), C.bars(sp, { colors: [COL.deep, COL.core, COL.rem, '#9aa3ad'], target: (state.ov.settings.goals.sleep_min || 450) / 60, empty: t('no_data'), fmt: function (v) { return HC.hm(v * 60); } }),
+    chart(t('c_sleep'), C.bars(sp, { colors: [COL.deep, COL.core, COL.rem, '#9aa3ad'], names: [t('stage_deep'), t('stage_core'), t('stage_rem'), t('stage_other')], target: (state.ov.settings.goals.sleep_min || 450) / 60, targetLabel: t('target'), empty: t('no_data'), fmt: function (v) { return HC.hm(v * 60); } }),
       [t('stage_deep'), t('stage_core'), t('stage_rem'), t('stage_other')].join(' · ') + (note ? ' · ' + note : ''));
-    chart(t('m_spo2') + ' (%)', C.line(HC.series(rows, 'spo2_avg', bucket, 100), { color: COL.spo2, empty: t('no_data'), fmt: function (v) { return HC.num(v, 1); } }), note);
-    chart(t('m_steps'), C.bars(HC.series(rows, 'steps', bucket), { color: COL.steps, target: state.ov.settings.goals.steps, empty: t('no_data') }), note);
-    chart(t('m_kcal') + ' (kcal)', C.bars(HC.series(rows, 'active_kcal', bucket), { color: COL.kcal, target: state.ov.settings.goals.active_kcal, empty: t('no_data') }), note);
+    chart(t('m_spo2') + ' (%)', C.line(HC.series(rows, 'spo2_avg', bucket, 100), lineOpts(COL.spo2, function (v) { return HC.num(v, 1); }, '%')), note);
+    var stepsGoal = state.ov.settings.goals.steps;
+    chart(t('m_steps'), C.bars(HC.series(rows, 'steps', bucket), { color: COL.steps, target: stepsGoal, targetLabel: t('target'), empty: t('no_data') }), note);
+    chart(t('m_kcal') + ' (kcal)', C.bars(HC.series(rows, 'active_kcal', bucket), { color: COL.kcal, target: state.ov.settings.goals.active_kcal, targetLabel: t('target'), empty: t('no_data') }), note);
     var wt = HC.series(rows, 'weight', bucket);
-    if (wt.length) { chart(t('m_weight') + ' (kg)', C.line(wt, { color: COL.weight, fmt: function (v) { return HC.num(v, 1); } }), note); }
+    chart(t('m_weight') + ' (kg)', C.line(wt, { color: COL.weight, ma: daily && wt.length >= 10 ? 7 : 0, goal: state.ov.settings.goals.weight, goalLabel: t('target'), dots: true, fmt: function (v) { return HC.num(v, 1); }, unit: 'kg', empty: t('w_none_period') }), note);
     var bf = HC.series(rows, 'bodyfat', bucket, 100);
-    if (bf.length) { chart(t('m_bodyfat') + ' (%)', C.line(bf, { color: COL.fat, fmt: function (v) { return HC.num(v, 1); } }), note); }
+    if (bf.length) { chart(t('m_bodyfat') + ' (%)', C.line(bf, { color: COL.fat, dots: true, fmt: function (v) { return HC.num(v, 1); }, unit: '%' }), note); }
     var vo = HC.series(rows, 'vo2max', bucket === 'day' ? 'week' : bucket);
-    if (vo.length) { chart(t('m_vo2') + ' (ml/kg/min)', C.line(vo, { color: COL.vo2, fmt: function (v) { return HC.num(v, 1); } }), t('vo2_note')); }
+    if (vo.length) { chart(t('m_vo2') + ' (ml/kg/min)', C.line(vo, { color: COL.vo2, dots: true, fmt: function (v) { return HC.num(v, 1); } }), t('vo2_note')); }
     var hrv = HC.series(rows, 'hrv', bucket);
-    if (hrv.length) { chart(t('m_hrv') + ' (ms)', C.line(hrv, { color: COL.recovery, fmt: function (v) { return HC.num(v, 0); } }), ''); }
+    if (hrv.length) { chart(t('m_hrv') + ' (ms)', C.line(hrv, lineOpts(COL.recovery, function (v) { return HC.num(v, 0); }, 'ms')), ''); }
     // workouts: minutes per week (or month)
     var wb = bucket === 'month' ? 'month' : 'week', acc = {};
     s.workouts.forEach(function (w) { var k = wb === 'week' ? HC.mondayOf(w.day) : w.day.slice(0, 7) + '-01'; acc[k] = (acc[k] || 0) + w.duration_min; });
@@ -298,9 +372,11 @@
       ];
       main.appendChild(card(t('week_targets', { from: HC.day(p.week_start) }), rows.map(function (r) {
         return h('div', { class: 'hc-goal' }, [h('div', { class: 'hc-goal-top' }, [h('strong', { text: r[0] }), h('span', { text: r[3] })]), C.progress(r[1] || 0, r[2], r[5]), r[4] ? h('div', { class: 'hc-muted', text: r[4] }) : null]);
-      }).concat([p.weight.goal ? h('p', { text: t('weight_goal', { last: HC.num(p.weight.last, 1), goal: HC.num(p.weight.goal, 1) }) }) : null,
+      }).concat([p.weight.goal ? h('p', { text: t('weight_goal', { last: HC.num(p.weight.last, 1), goal: HC.num(p.weight.goal, 1) }) + (ov.weight && ov.weight.eta && ov.weight.eta.days ? ' · ' + t('w_eta_short', { date: HC.day(ov.weight.eta.date) }) : '') }) : null,
         h('p', { class: 'hc-muted', text: t('adaptive_note', { steps: HC.num(tg.basis.steps, 0), sleep: HC.hm(tg.basis.sleep_min) }) })])));
     }
+    main.appendChild(checkupCard());
+    main.appendChild(corrCard(ov.correlations));
     var s = ov.streaks;
     main.appendChild(card(t('streaks_title'), [h('div', { class: 'hc-grid4' }, [
       stat(t('streak_steps'), s.steps.current + ' ' + t('u_days'), t('best_v', { v: s.steps.best }), COL.steps),
@@ -324,6 +400,45 @@
         .then(function () { toast(t('saved')); return load(); }).then(route, function (er) { toast(errText(er), true); });
     });
     main.appendChild(card(t('goals_title'), [f]));
+  }
+
+  function checkupCard() {
+    var latest = state.ov.aiLatest && state.ov.aiLatest.checkup;
+    var out = h('div', { class: 'hc-ai-out' });
+    var sel = h('select', { class: 'hc-select' }, [30, 90, 365].map(function (d) { return h('option', { value: d, text: t('range_d', { n: d }) }); }));
+    var b = btn(t('checkup_run'), function () {
+      b.disabled = true; HC.clear(out).appendChild(h('p', { class: 'hc-muted', text: t('ask_thinking') }));
+      HC.api('POST', '/api/ai/task/checkup', { days: sel.value }).then(function (r) { renderCheckup(out, r); }, function (e) { HC.clear(out).appendChild(h('p', { class: 'hc-a-err', text: errText(e) })); }).then(function () { b.disabled = false; });
+    }, 'hc-btn-primary');
+    if (latest && latest.result) { renderCheckup(out, latest); }
+    return card(t('checkup_title'), [h('p', { class: 'hc-muted', text: t('checkup_intro') }), h('div', { class: 'hc-row' }, [sel, b]), out, disclaimer()], { id: 'hc-checkup' });
+  }
+  function renderCheckup(out, r) {
+    var x = r.result, sec = function (title, cls, items) { return items && items.length ? h('div', { class: 'hc-cu ' + cls }, [h('h4', { text: title }), h('ul', {}, items.map(function (s) { return h('li', { text: s }); }))]) : null; };
+    var parts = String(r.request || '').split(':');
+    HC.clear(out).appendChild(h('div', { class: 'hc-cu-grid' }, [sec('✓ ' + t('cu_good'), 'hc-cu-good', x.good), sec('👀 ' + t('cu_watch'), 'hc-cu-watch', x.watch), sec('→ ' + t('cu_actions'), 'hc-cu-act', x.actions),
+      x.doctor ? h('div', { class: 'hc-cu hc-cu-doc' }, [h('h4', { text: '🩺 ' + t('cu_doctor') }), h('p', { text: x.doctor })]) : null]));
+    out.appendChild(h('p', { class: 'hc-muted hc-small', text: (parts[1] ? t('range_d', { n: parts[1] }) + ' · ' : '') + HC.dateTime(r.at) + ' · ' + r.model }));
+  }
+  function corrCard(c) {
+    if (!c) { return h('span'); }
+    var items = c.pairs.map(function (p) {
+      var dir = p.r > 0 ? 'pos' : 'neg';
+      var bar = h('div', { class: 'hc-corr-bar' }, [h('span', { class: 'hc-corr-fill hc-corr-' + dir, style: 'width:' + Math.round(Math.abs(p.r) * 100) + '%' })]);
+      return h('li', { class: 'hc-corr' }, [h('div', { class: 'hc-corr-top' }, [h('strong', { text: t('corr_' + p.key) }), h('span', { class: 'hc-muted', text: 'r = ' + HC.num(p.r, 2) + ' · n = ' + p.n })]), bar,
+        h('div', { class: 'hc-muted hc-small', text: t('strength_' + p.strength) + (p.strength !== 'none' ? ' · ' + t('corr_dir_' + dir) : '') })]);
+    });
+    var wd = c.weekday || [];
+    var names = t('daynames').split(',');
+    var body = [h('p', { class: 'hc-muted', text: t('corr_intro', { from: HC.day(c.from), to: HC.day(c.to) }) })];
+    body.push(items.length ? h('ul', { class: 'hc-list hc-corr-list' }, items) : h('p', { text: t('corr_none') }));
+    if (wd.length) {
+      body.push(h('h3', { text: t('weekday_title') }));
+      body.push(C.hbars(wd.map(function (d) { return { label: names[d.weekday], v: d.steps, color: COL.steps }; }), function (v) { return HC.num(v, 0) + ' ' + t('u_steps'); }));
+      body.push(C.hbars(wd.map(function (d) { return { label: names[d.weekday], v: d.sleep_total, color: COL.sleep }; }), function (v) { return HC.hm(v); }));
+    }
+    body.push(h('p', { class: 'hc-muted hc-small', text: t('corr_note') }));
+    return card(t('corr_title'), body);
   }
 
   /* ------------------------------------------------------- ask ------------------------------------------------------- */
@@ -478,6 +593,15 @@
     var wt = HC.series(r.days, 'weight', 'day');
     if (wt.length) { g(t('m_weight') + ' (kg)', C.line(wt, { color: COL.weight, fmt: function (v) { return HC.num(v, 1); } })); }
     page.appendChild(charts);
+    var W = r.weight;
+    if (W && W.has) {
+      var wrows = [[t('w_current'), HC.num(W.last.kg, 1) + ' kg (' + HC.day(W.last.day) + ')'], [t('w_change_d', { n: 30 }), W.change[30] ? HC.signed(W.change[30].kg, 1, 'kg') : '–'],
+        [t('w_change_d', { n: 90 }), W.change[90] ? HC.signed(W.change[90].kg, 1, 'kg') : '–'], ['BMI', W.bmi ? HC.num(W.bmi.value, 1) + ' (' + t('bmi_' + W.bmi.category) + ', ' + HC.day(W.bmi.day) + ')' : '–'],
+        [t('m_bodyfat'), W.bodyfat ? HC.num(W.bodyfat.pct, 1) + ' % (' + HC.day(W.bodyfat.day) + ')' : '–'], [t('w_rate'), W.rate_kg_week === null ? '–' : HC.signed(W.rate_kg_week, 2, 'kg/' + t('u_week')) + ' (n=' + W.rate_n + ')']];
+      page.appendChild(h('section', { class: 'hc-rep-weight' }, [h('h2', { text: t('w_title') }), h('table', { class: 'hc-table hc-small' }, [h('tbody', {}, wrows.map(function (x) { return h('tr', {}, [h('td', { text: x[0] }), h('td', { class: 'hc-num', text: x[1] })]); }))]),
+        C.line((r.weightTrend || []).map(function (p) { return { x: p.day, y: p.weight }; }), { color: COL.weight, dots: true, ma: (r.weightTrend || []).length >= 10 ? 7 : 0, fmt: function (v) { return HC.num(v, 1); }, unit: 'kg', empty: t('no_data') }),
+        h('p', { class: 'hc-muted hc-small', text: t('w_rep_note') })]));
+    }
     page.appendChild(h('section', {}, [h('h2', { text: t('rep_changes') })].concat(s.warnings.length ? [h('ul', {}, s.warnings.map(function (w) { return h('li', { text: warningText(w) }); }))] : [h('p', { text: t('hints_none') })])));
     if (r.workouts.length) {
       page.appendChild(h('section', {}, [h('h2', { text: t('rep_workouts', { n: r.workouts.length }) }), h('table', { class: 'hc-table hc-small' }, [h('tbody', {}, r.workouts.map(function (w) {
@@ -488,6 +612,20 @@
     page.appendChild(h('section', { class: 'hc-rep-ai' }, [h('h2', { text: t('rep_ai') }), r.ai && r.ai.doctor ? h('p', { lang: r.ai.doctorLang || null, text: r.ai.doctor }) : h('p', { class: 'hc-muted', text: t('rep_ai_none') }),
       r.ai && r.ai.doctorLang && r.ai.doctorLang !== HC.i18n.lang() ? h('p', { class: 'hc-muted hc-small hc-noprint', text: t('rep_ai_lang', { l: r.ai.doctorLang.toUpperCase() }) }) : null,
       r.ai ? h('p', { class: 'hc-muted hc-small', text: t('ai_meta', { date: HC.dateTime(r.ai.createdAt), model: r.ai.model || '?', to: HC.day(r.ai.to) }) }) : null]));
+    var qBox = h('div', {});
+    var renderQ = function (x) {
+      HC.clear(qBox);
+      if (!x || !x.result) { return; }
+      if (x.result.intro) { qBox.appendChild(h('p', { text: x.result.intro })); }
+      qBox.appendChild(h('ol', { class: 'hc-questions' }, x.result.questions.map(function (q) { return h('li', { text: q }); })));
+      qBox.appendChild(h('p', { class: 'hc-muted hc-small', text: HC.dateTime(x.at) + ' · ' + x.model + ' · ' + t('ai_note') }));
+    };
+    var qb = btn(t('dq_make'), function () {
+      qb.disabled = true; HC.clear(qBox).appendChild(h('p', { class: 'hc-muted', text: t('ask_thinking') }));
+      HC.api('POST', '/api/ai/task/doctorq', { days: r.summary.period.days, lang: HC.i18n.lang() }).then(renderQ, function (e) { HC.clear(qBox).appendChild(h('p', { text: errText(e) })); }).then(function () { qb.disabled = false; });
+    }, 'hc-noprint');
+    renderQ(r.doctorQuestions);
+    page.appendChild(h('section', { class: 'hc-rep-q' }, [h('h2', { text: t('dq_title') }), qBox, qb]));
     page.appendChild(h('footer', { class: 'hc-rep-foot' }, [h('p', { text: t('rep_disclaimer') }), h('p', { class: 'hc-small', text: t('rep_method') })]));
   }
 

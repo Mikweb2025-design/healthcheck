@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.2 – 2026-11-20
+
+* Weight as a first-class metric: card on "Today" (current value, change 7/30/90 days, BMI with WHO category, body fat,
+  rate per week, ETA to the target weight, chart with 7-day moving average), in trends, agent, doctor report, infographic
+  and weekly n8n report
+* Manual weigh-ins ("weight today", optional body fat), stored separately, never overwritten by imports, deletable;
+  weigh-in reminder after 7 days when a target weight is set
+* Import ignores implausible scale values (≤ 20 kg, > 300 kg, BMI outside 10–80), converts lb/g/st
+* Charts: smooth lines with 7-day moving average, personal normal range (mean ± 1 SD) band, anomaly marks, workout
+  markers, tap/hover tooltips with exact values, sleep window chart (bedtime → wake-up with stage shares), weekday bars,
+  nicer empty states, narrower drawing canvas on phones (verified at 375 px)
+* AI functions (aggregates only, rate limited, stored): check-up for 30/90/365 days (good / watch / 3 actions / when
+  to see a doctor), "Why?" explanation for each early hint, questions for the doctor in the report language
+* Correlations computed in code (Pearson r with n, minimum 20 pairs; weekly workout minutes vs weight change; weekday
+  means); the AI only narrates them
+* Weekly n8n report: weight section and the computed correlations of the last 90 days
+* Deploy script runs the Nextcloud update step right after replacing the app
+
 ## 0.1.1 – 2026-11-20
 
 * Own language for the doctor report (`report_lang`, setting next to the app language); language switch IT/DE/EN on the

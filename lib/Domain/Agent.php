@@ -202,6 +202,10 @@ final class Agent {
 		if (isset($warn['rhr_up']) || ($rec !== null && $rec < 50)) {
 			$out[] = ['key' => 'rest_day', 'params' => ['score' => $rec ?? '', 'rhr' => $warn['rhr_up']['params']['value'] ?? '']];
 		}
+		$w = Weight::stats($rows, $goals['weight'] ?? null, $rows[count($rows) - 1]['day']);
+		if ($w['has'] && $w['reminder'] && ($goals['weight'] ?? null) !== null) {
+			$out[] = ['key' => 'weigh_in', 'params' => ['days' => $w['age_days'], 'last' => $w['last']['kg']]];
+		}
 		foreach (['steps' => ['steps', $goals['steps']], 'sleep' => ['sleep_total', $goals['sleep_min']]] as $name => [$col, $target]) {
 			$s = self::streak($rows, $col, (float)$target);
 			if ($s['current'] >= 7 && $s['current'] % 7 === 0) {
