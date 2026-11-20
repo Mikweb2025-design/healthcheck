@@ -2,7 +2,7 @@
 """Builds shortcuts/Health-Check-Invio.unsigned.shortcut (plist) and signs it with the macOS `shortcuts sign` tool.
 
 The shortcut collects the health samples of the last 2 days per type with "Find Health Samples", reads the details
-(value, unit, start, end, source) as lists, joins each list with new lines and POSTs one flat JSON object
+(value, unit, start, end, source) as lists, joins each list with new lines and POSTs, per type, one flat JSON object
 ("<type>_values", "<type>_starts", ...) to /apps/healthcheck/api/ingest with the header X-HC-Token.
 No loop over single samples (that would take minutes for ~700 heart-rate samples).
 Server URL and token are Import Questions, asked once when the shortcut is added on the iPhone.
@@ -17,11 +17,12 @@ OBJ = "￼"
 
 # our key -> Health type as named in the Shortcuts filter (English identifiers stored in the file)
 TYPES = [
-    # only types the watch writes every day: "Find Health Samples" stops the whole shortcut when a type has no sample
-    # in the period, so sparse types (HRV, weight, body fat, VO2max, cycling) come from the weekly export or manual entry
-    ("sleep", "Sleep"), ("heart_rate", "Heart Rate"), ("resting_hr", "Resting Heart Rate"), ("spo2", "Blood Oxygen"),
-    ("steps", "Steps"), ("distance", "Walking + Running Distance"), ("active_energy", "Active Calories"),
-    ("flights", "Flights Climbed"),
+    # Only types the watch writes every day: "Find Health Samples" stops the whole shortcut (with an alert) when a type has
+    # no sample in the period, so sparse types (blood oxygen, HRV, weight, body fat, VO2max, cycling) come from the weekly
+    # export or manual entry. Each type is POSTed right after it was read and the most reliable types come first: if a
+    # later type is ever empty, everything before it has already arrived.
+    ("steps", "Steps"), ("active_energy", "Active Calories"), ("distance", "Walking + Running Distance"), ("flights", "Flights Climbed"),
+    ("heart_rate", "Heart Rate"), ("sleep", "Sleep"), ("resting_hr", "Resting Heart Rate"),
 ]
 DETAILS = [("values", "Value"), ("units", "Unit"), ("starts", "Start Date"), ("ends", "End Date"), ("sources", "Source")]
 
@@ -66,8 +67,21 @@ def add(identifier, params, u=None):
 # 0/1: server URL and token (filled by Import Questions)
 u_url = add("is.workflow.actions.gettext", {"WFTextActionText": "", "CustomOutputName": "Health Check URL"})
 u_tok = add("is.workflow.actions.gettext", {"WFTextActionText": "", "CustomOutputName": "Health Check Token"})
-json_items = [("v", tstring("1")), ("client", tstring("shortcut-1"))]
+
+
+def post(items):
+    add("is.workflow.actions.downloadurl", {
+        "WFURL": tstring(OBJ, (u_url, "Health Check URL")),
+        "WFHTTPMethod": "POST",
+        "WFHTTPBodyType": "JSON",
+        "ShowHeaders": True,
+        "WFHTTPHeaders": dict_field([("X-HC-Token", tstring(OBJ, (u_tok, "Health Check Token")))]),
+        "WFJSONValues": dict_field(items),
+    })
+
+
 for key, hk in TYPES:
+    json_items = [("v", tstring("1")), ("client", tstring("shortcut-2"))]
     u_find = add("is.workflow.actions.filter.health.quantity", {
         "WFContentItemFilter": {"Value": {"WFActionParameterFilterPrefix": 1, "WFContentPredicateBoundedDate": False, "WFActionParameterFilterTemplates": [
             {"Bounded": True, "Property": "Type", "Operator": 4, "Removable": False,
@@ -85,15 +99,9 @@ for key, hk in TYPES:
             src = (u_fmt, "Formatted Date")
         u_join = add("is.workflow.actions.text.combine", {"text": token(*src), "WFTextSeparator": "New Lines", "CustomOutputName": key + "_" + field})
         json_items.append((key + "_" + field, tstring(OBJ, (u_join, key + "_" + field))))
+    post(json_items)
 
-add("is.workflow.actions.downloadurl", {
-    "WFURL": tstring(OBJ, (u_url, "Health Check URL")),
-    "WFHTTPMethod": "POST",
-    "WFHTTPBodyType": "JSON",
-    "ShowHeaders": True,
-    "WFHTTPHeaders": dict_field([("X-HC-Token", tstring(OBJ, (u_tok, "Health Check Token")))]),
-    "WFJSONValues": dict_field(json_items),
-})
+add("is.workflow.actions.notification", {"WFNotificationActionTitle": "Health Check", "WFNotificationActionBody": "Dati inviati"})
 
 wf = {
     "WFWorkflowClientVersion": "2607.0.2",

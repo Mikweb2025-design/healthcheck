@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 – 2026-11-20
+
+* Shortcut no longer stops on an empty type ("No measurements found … Blood Oxygen"): blood oxygen is not read any more
+  (it comes with the weekly export) and every type is POSTed right after it was read, most reliable types first, so an
+  empty type can never block the data before it. A notification confirms a complete run.
+
 ## 0.3.0 – 2026-11-20
 
 * **Daily check-in**: one tap for energy (1–5) with an optional short note on "Today"; last 14 days as bars, 7-day
