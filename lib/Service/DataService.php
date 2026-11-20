@@ -12,6 +12,7 @@ use OCA\HealthCheck\Domain\AiTasks;
 use OCA\HealthCheck\Domain\Correlations;
 use OCA\HealthCheck\Domain\Weight;
 use OCA\HealthCheck\Domain\Chat;
+use OCA\HealthCheck\Domain\Coach;
 use OCA\HealthCheck\Domain\Checkins;
 use OCA\HealthCheck\Domain\Infographic;
 use OCA\HealthCheck\Domain\Insights;
@@ -80,6 +81,7 @@ class DataService {
 			'weightTrend' => Weight::movingAverage(array_values(array_filter(Weight::points($rows), fn ($p) => $p['day'] >= Insights::addDays($this->import->today($uid), -365)))),
 			'weightEntries' => array_reverse(array_slice($this->store->weights($uid), -10)),
 			'correlations' => Correlations::compute($rows, $workouts, 365),
+			'coach' => Coach::compute($rows, $goals, $lastDay, $this->settings->tz($uid)),
 			'aiLatest' => $this->aiLatest($uid),
 			'ai' => $ai === null ? null : $ai + ['planEvaluation' => Agent::evaluatePlan($ai['plan'], $rows, $workouts, $this->settings->tz($uid))],
 			'settings' => $this->settings->forUser($uid),

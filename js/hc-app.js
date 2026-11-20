@@ -114,6 +114,7 @@
     // early warning
     var ws = ov.warnings || [];
     main.appendChild(card(t('hints_title'), ws.length ? ws.map(hintItem).concat([h('p', { class: 'hc-muted', text: t('hints_doctor') }), disclaimer()]) : [h('p', { text: t('hints_none') }), disclaimer()], { id: 'hc-hints', cls: ws.length ? 'hc-card-hint' : '' }));
+    var coachEl = coachCard(ov.coach); if (coachEl) { main.appendChild(coachEl); }
     main.appendChild(weightCard(ov));
     main.appendChild(checkinCard());
 
@@ -202,6 +203,24 @@
     }
     HC.api('GET', '/api/checkins').then(draw, function () { c.hidden = true; });
     return c;
+  }
+
+  /* rule-based weekly tips and rhythm numbers (no AI) */
+  function coachCard(co) {
+    if (!co || !co.tips || !co.tips.length) { return null; }
+    var fmt = function (k, p) {
+      var q = {}; Object.keys(p || {}).forEach(function (x) { q[x] = p[x]; });
+      if (q.avg !== undefined && (k === 'tip_sleep_short')) { q.avg = HC.hm(q.avg); q.goal = HC.hm(q.goal); }
+      if (q.avg !== undefined && k === 'tip_move') { q.avg = HC.num(q.avg, 0); q.goal = HC.num(q.goal, 0); }
+      return t(k, q);
+    };
+    var body = [h('p', { class: 'hc-muted hc-small', text: t('coach_hint') }), h('ul', { class: 'hc-tips' }, co.tips.map(function (x) { return h('li', { text: fmt(x.key, x.params) }); }))];
+    var stats = [];
+    if (co.regularity) { stats.push(stat(t('coach_reg'), t('coach_reg_v', { m: co.regularity.bed_sd }), t('coach_reg_s', { t: co.regularity.bed_avg }), COL.sleep)); }
+    if (co.jetlag) { stats.push(stat(t('coach_jet'), t('coach_jet_v', { s: co.jetlag.diff_min > 0 ? '+' : '−', m: Math.abs(co.jetlag.diff_min) }), t('coach_jet_s'), COL.sleep)); }
+    if (co.load) { stats.push(stat(t('coach_load'), t('coach_load_' + co.load.status), t('coach_load_s', { k: co.load.kcal7, b: co.load.kcal_base }), COL.kcal)); }
+    if (stats.length) { body.push(h('div', { class: 'hc-grid4' }, stats)); }
+    return card(t('coach_title'), body);
   }
 
   function weightCard(ov) {

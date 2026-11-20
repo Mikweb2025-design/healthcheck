@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 – 2026-11-20
+
+* **Tips for this week** on "Today": up to three plain tips computed from your own data, without AI (rule-based,
+  neutral, no diagnoses): enough sleep versus your goal, steadiness of bedtime, weekend shift ("social jet lag"),
+  steps versus goal, and load versus recovery (a heavy week with a resting heart rate above your normal suggests an easy
+  day). Together with three numbers: sleep rhythm (±min), weekend shift and load.
+
 ## 0.3.1 – 2026-11-20
 
 * Shortcut no longer stops on an empty type ("No measurements found … Blood Oxygen"): blood oxygen is not read any more
