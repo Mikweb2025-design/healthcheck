@@ -18,7 +18,7 @@ final class AdminConfig {
 		'openai' => ['url' => 'https://api.openai.com/v1/chat/completions', 'model' => 'gpt-4o-mini', 'key' => true],
 		'mistral' => ['url' => 'https://api.mistral.ai/v1/chat/completions', 'model' => 'mistral-small-latest', 'key' => true],
 		'anthropic' => ['url' => 'https://api.anthropic.com/v1/messages', 'model' => 'claude-sonnet-5-5', 'key' => true],
-		'opencode' => ['url' => 'https://opencode.ai/zen/v1/chat/completions', 'model' => 'big-pickle', 'key' => true],
+		'opencode' => ['url' => 'http://172.18.0.1:8788/v1/chat/completions', 'model' => 'opencode/big-pickle', 'key' => true],
 		'openrouter' => ['url' => 'https://openrouter.ai/api/v1/chat/completions', 'model' => 'openai/gpt-oss-120b:free', 'key' => true],
 		'ollama' => ['url' => 'http://localhost:11434/v1/chat/completions', 'model' => 'llama3.1', 'key' => false],
 		'custom' => ['url' => '', 'model' => '', 'key' => true],

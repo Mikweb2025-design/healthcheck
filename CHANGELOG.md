@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 – 2026-11-20
+
+* OpenCode as a provider through a small bridge (`bridge/`): an OpenAI-compatible service on the Docker host that runs
+  `opencode run`, so the OpenCode models that only answer inside OpenCode (free Zen models) can be used from the
+  Nextcloud container. Bearer token, listens only on the Docker gateway, only `opencode/*` models, every call runs in an
+  empty directory with a config that denies edit, bash and web fetch. Replaces the direct OpenCode Zen preset of 0.2.1.
+
 ## 0.2.1 – 2026-11-20
 
 * Claude (Anthropic API) as an AI provider in the administration page, using the native Messages API

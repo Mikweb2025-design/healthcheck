@@ -32,7 +32,7 @@
       defaults: 'Valori predefiniti per gli utenti', dlang: 'Lingua dell’app se la lingua di Nextcloud non è supportata', rlang: 'Lingua del referto per il medico (vuoto = come l’app)', same: 'come l’app',
       stats: 'Utilizzo', users: 'Utenti dell’app', calls: 'Richieste IA nelle ultime 24 ore', save: 'Salva', saved: 'Salvato', err: 'Salvataggio non riuscito: ', ai_ready: 'L’IA è pronta', ai_off: 'L’IA non è ancora utilizzabile (spenta, oppure mancano endpoint, modello o chiave)', local_hint: 'Un indirizzo locale richiede allow_local_remote_servers in config.php.' }
   }[L];
-  var PROV = { ionos: 'IONOS AI Model Hub', openai: 'OpenAI', anthropic: 'Claude (Anthropic API)', mistral: 'Mistral', opencode: 'OpenCode Zen (API key)', openrouter: 'OpenRouter', ollama: 'Ollama (local)', custom: 'Custom' };
+  var PROV = { ionos: 'IONOS AI Model Hub', openai: 'OpenAI', anthropic: 'Claude (Anthropic API)', mistral: 'Mistral', opencode: 'OpenCode (on this server, via bridge)', openrouter: 'OpenRouter', ollama: 'Ollama (local)', custom: 'Custom' };
   var LANGS = { de: 'Deutsch', en: 'English', it: 'Italiano' };
 
   function url(p) { return (window.OC && OC.generateUrl) ? OC.generateUrl('/apps/healthcheck' + p) : '/index.php/apps/healthcheck' + p; }
