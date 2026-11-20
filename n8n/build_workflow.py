@@ -55,24 +55,60 @@ const w = s.summary.workouts;
 lines.push(`Workouts last 7 days: ${w.count} (${w.minutes} min, ${w.distance_km} km, ${w.kcal} kcal) by type ${JSON.stringify(w.by_activity)}`);
 const trend = s.summary.weeks.map(x => `${x.to}: RHR ${r1(x.resting_hr, 1)}, sleep ${hm(x.sleep_total)}, deep ${hm(x.sleep_deep)}, steps ${r1(x.steps, 0)}, SpO2 ${x.spo2_avg === null ? null : r1(x.spo2_avg * 100, 1)}%`).join('\n');
 const rings = s.summary.rings;
+const lk = ['de', 'it', 'en'].includes(s.lang) ? s.lang : 'en';
+// ready-made wording: the model never compares values with goals and never sees internal field names
+const STATUS = {
+  en: { met: 'goal reached', close: 'almost reached', below: 'below the goal', above: 'above the limit', over_target: 'above the target weight', under_target: 'below the target weight' },
+  de: { met: 'Ziel erreicht', close: 'fast erreicht', below: 'unter dem Ziel', above: 'über dem Grenzwert', over_target: 'über dem Zielgewicht', under_target: 'unter dem Zielgewicht' },
+  it: { met: 'obiettivo raggiunto', close: 'quasi raggiunto', below: 'sotto l’obiettivo', above: 'sopra il limite', over_target: 'sopra il peso obiettivo', under_target: 'sotto il peso obiettivo' },
+}[lk];
+const GOALNAME = {
+  en: { sleep_per_night: 'sleep per night', steps_per_day: 'steps per day', active_energy_per_day: 'active energy per day', workouts_per_week: 'workouts per week', target_weight: 'target weight' },
+  de: { sleep_per_night: 'Schlaf pro Nacht', steps_per_day: 'Schritte pro Tag', active_energy_per_day: 'aktive Energie pro Tag', workouts_per_week: 'Trainings pro Woche', target_weight: 'Zielgewicht' },
+  it: { sleep_per_night: 'sonno per notte', steps_per_day: 'passi al giorno', active_energy_per_day: 'energia attiva al giorno', workouts_per_week: 'allenamenti a settimana', target_weight: 'peso obiettivo' },
+}[lk];
+const goalCheck = Object.keys(s.goal_check || {}).map(k => {
+  const g = s.goal_check[k];
+  return { goal_name: GOALNAME[k] || 'goal', goal: g.goal, this_week: g.period_average !== undefined ? g.period_average : g.last_weigh_in, status: STATUS[g.verdict] || g.status || g.verdict };
+});
+const CORR = {
+  sleep_rhr: { en: 'sleep duration and resting heart rate on the same day', de: 'Schlafdauer und Ruhepuls am selben Tag', it: 'durata del sonno e frequenza cardiaca a riposo lo stesso giorno' },
+  sleep_rhr_next: { en: 'sleep duration and resting heart rate the next day', de: 'Schlafdauer und Ruhepuls am Folgetag', it: 'durata del sonno e frequenza cardiaca a riposo il giorno dopo' },
+  steps_deep: { en: 'steps and the deep sleep share of the following night', de: 'Schritte und Tiefschlafanteil der folgenden Nacht', it: 'passi e quota di sonno profondo della notte seguente' },
+  steps_sleep: { en: 'steps and the sleep duration of the following night', de: 'Schritte und Schlafdauer der folgenden Nacht', it: 'passi e durata del sonno della notte seguente' },
+  kcal_rhr_next: { en: 'active energy and resting heart rate the next day', de: 'aktive Energie und Ruhepuls am Folgetag', it: 'energia attiva e frequenza cardiaca a riposo il giorno dopo' },
+  bedtime_sleep: { en: 'bedtime and sleep duration', de: 'Einschlafzeit und Schlafdauer', it: 'ora di addormentamento e durata del sonno' },
+  workout_weight: { en: 'workout minutes per week and the weight change of the following week', de: 'Trainingsminuten pro Woche und Gewichtsänderung der Folgewoche', it: 'minuti di allenamento a settimana e variazione di peso la settimana dopo' },
+};
+const STR = { en: { none: 'none', weak: 'weak', moderate: 'moderate', strong: 'clear' }, de: { none: 'keiner', weak: 'schwach', moderate: 'mittel', strong: 'deutlich' }, it: { none: 'nessuna', weak: 'debole', moderate: 'moderata', strong: 'netta' } };
+const HINT = {
+  rhr_up: { en: p => `resting heart rate at ${p.value} bpm or more on ${p.days} days in a row, at least 5 above the usual ${p.base} bpm`, de: p => `Ruhepuls an ${p.days} Tagen in Folge bei ${p.value} bpm oder mehr, mindestens 5 über dem üblichen ${p.base} bpm`, it: p => `frequenza cardiaca a riposo di ${p.value} bpm o più per ${p.days} giorni di fila, almeno 5 sopra il solito ${p.base} bpm` },
+  spo2_drop: { en: p => `night oxygen saturation lower than usual (avg ${p.value} %, minimum ${p.min} %)`, de: p => `nächtliche Sauerstoffsättigung niedriger als üblich (Ø ${p.value} %, Minimum ${p.min} %)`, it: p => `saturazione notturna più bassa del solito (media ${p.value} %, minimo ${p.min} %)` },
+  deep_drop: { en: p => `deep sleep share ${p.value} % over 7 nights (usually ${p.base} %)`, de: p => `Tiefschlafanteil ${p.value} % in 7 Nächten (sonst ${p.base} %)`, it: p => `quota di sonno profondo ${p.value} % in 7 notti (di solito ${p.base} %)` },
+  sleep_short: { en: p => `average sleep only ${hm(p.value)} over ${p.nights} nights`, de: p => `Schlaf im Schnitt nur ${hm(p.value)} in ${p.nights} Nächten`, it: p => `sonno medio di soli ${hm(p.value)} in ${p.nights} notti` },
+  steps_drop: { en: p => `clearly fewer steps than usual (avg ${p.value} instead of ${p.base})`, de: p => `deutlich weniger Schritte als sonst (Ø ${p.value} statt ${p.base})`, it: p => `molti meno passi del solito (media ${p.value} invece di ${p.base})` },
+  weight_change: { en: p => `weight changed by ${p.pct} % since ${p.since} (${p.base} to ${p.value} kg)`, de: p => `Gewicht seit ${p.since} um ${p.pct} % verändert (${p.base} auf ${p.value} kg)`, it: p => `peso cambiato del ${p.pct} % dal ${p.since} (da ${p.base} a ${p.value} kg)` },
+};
+const hints = (s.summary.warnings || []).map(w => HINT[w.key] ? HINT[w.key][lk](w.params || {}) : null).filter(Boolean);
 const facts = {
   period: s.summary.period, data_status: { last_day: s.data_status.lastImport && s.data_status.lastImport.lastDay, age_days: s.data_status.ageDays },
   scores_0_100: { sleep: rings.sleep.score, recovery: rings.recovery.score, movement: rings.movement.score },
-  neutral_hints_from_rules: s.summary.warnings, goals: s.goals,
-  this_week_progress: { steps_avg: s.progress.steps.avg, sleep_avg: hm(s.progress.sleep.avg), workouts_done: s.progress.workouts.done, targets: s.progress.targets },
+  neutral_hints_from_rules: hints,
+  goal_check: goalCheck,
   next_week: { start: s.next_week.start, end: s.next_week.end, targets: { steps: s.next_week.targets.steps, sleep: hm(s.next_week.targets.sleep_min),
     active_kcal: s.next_week.targets.active_kcal, workouts: s.next_week.targets.workouts } }, previous_plan_evaluation: s.previous_plan ? s.previous_plan.evaluation : null,
   records_all_time: s.week_infographic.records, streaks: s.week_infographic.streaks, consistency: s.week_infographic.consistency,
-  earlier_weekly_summaries: s.memory,
+  earlier_weekly_summaries: (s.memory || []).map(m => ({ week_ending: m.period_to, summary: String(m.summary || '').replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, id => (CORR[id] || {})[lk] || '') })),
   weight: s.weight && s.weight.has ? { last_kg: s.weight.last.kg, last_weigh_in: s.weight.last.day, days_since_weigh_in: s.weight.age_days, change_30d_kg: s.weight.change['30'] ? s.weight.change['30'].kg : null,
     change_90d_kg: s.weight.change['90'] ? s.weight.change['90'].kg : null, bmi: s.weight.bmi, body_fat_pct: s.weight.bodyfat ? s.weight.bodyfat.pct : null, rate_kg_per_week: s.weight.rate_kg_week, target_kg: s.weight.goal, eta: s.weight.eta } : null,
-  computed_correlations_last_90_days: (s.correlations_90d ? s.correlations_90d.pairs : []).map(c => ({ relation: c.key, x: c.x, y: c.y, r: c.r, n: c.n, strength: c.strength })),
+  computed_correlations_last_90_days: (s.correlations_90d ? s.correlations_90d.pairs : []).map(c => ({ relation: (CORR[c.key] || {})[lk] || 'a relation between two measurements', r: c.r, n: c.n, strength: (STR[lk] || STR.en)[c.strength] || c.strength })),
 };
 const days = [];
 for (let i = 0; i < 7; i++) { const d = new Date(s.next_week.start + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + i); days.push(d.toISOString().slice(0, 10)); }
 const system = `You are a careful health coach writing a weekly report from smartwatch AGGREGATES for one adult. Write "summary", "tips" and the plan notes in ${L}; write "doctor" in ${LR}.
 Hard rules: use ONLY the numbers given; do not invent values. No diagnoses, no disease names as conclusions, no medication, supplement or dosage advice.
 Only safe, general lifestyle tips (sleep routine, light activity, recovery, hydration, daylight). If a value deviates persistently or strikingly, recommend seeing a doctor.
+Goal comparisons: use ONLY the ready-made "status" text of goal_check for any statement about a goal; never compare a value with a goal yourself and never state or recompute goals. Never mention technical names, field names or identifiers (no snake_case, no words like bedtime_sleep or sleep_min); use plain words only.
 Durations: always write them exactly as given, e.g. "6 h 41 min" - never as a number of minutes. SpO2 in percent. Plain text, no markdown, no emojis.
 Return ONLY a JSON object with exactly these keys:
 {"summary": "4-6 sentences: how the week went vs the personal baseline, mention 3-5 concrete numbers; refer to earlier weeks if given; evaluate last week's plan if an evaluation is given",

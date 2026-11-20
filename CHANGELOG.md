@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5 – 2026-11-20
+
+* Weekly n8n report: goal comparisons are computed in code (`goal_check` in `/api/automation/summary` with verdicts
+  met / close / below / above and, for a target weight, over/under target) and put into the prompt as ready-made status
+  text in the report language; the raw goals are no longer passed to the model
+* The prompt forbids comparing values with goals and mentioning technical names; correlation names and hint texts are
+  translated in the workflow (de/it/en) before they reach the model
+
 ## 0.1.4 – 2026-11-20
 - AI check-up: goal comparisons are now computed in code (`goal_check`: goal, period value, verdict met/close/below).
   The model no longer receives raw goals (such as `sleep_min: 450`), so it cannot compare them wrongly or mention field names.

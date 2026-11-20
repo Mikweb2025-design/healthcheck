@@ -66,7 +66,7 @@ final class AiTasks {
 	 * Goal comparisons computed in code, so the model only phrases them: goal, period value and an explicit verdict.
 	 * 'close' = within 5 % of the goal, 'met' = reached or better, 'below' = under the goal.
 	 */
-	public static function goalCheck(array $goals, array $sum, array $metrics, int $days): array {
+	public static function goalCheck(array $goals, array $sum, array $metrics, int $days, ?array $weight = null): array {
 		$out = [];
 		$verdict = function (float $value, float $goal, bool $higherIsBetter = true): string {
 			$ratio = $goal > 0 ? $value / $goal : 1.0;
@@ -89,6 +89,12 @@ final class AiTasks {
 			$perWeek = round(($sum['workouts']['count'] ?? 0) / ($days / 7), 1);
 			$out['workouts_per_week'] = ['goal' => (int)$goals['workouts_week'], 'period_average' => $perWeek, 'verdict' => $verdict($perWeek, (float)$goals['workouts_week'])];
 		}
+		// target weight: direction is the user's business, so only "at target / above / below" is reported
+		if (isset($goals['weight']) && $goals['weight'] !== null && $weight !== null && ($weight['has'] ?? false)) {
+			$diff = round($weight['last']['kg'] - (float)$goals['weight'], 1);
+			$out['target_weight'] = ['goal' => round((float)$goals['weight'], 1) . ' kg', 'last_weigh_in' => $weight['last']['kg'] . ' kg', 'difference_kg' => $diff,
+				'verdict' => abs($diff) < 0.3 ? 'met' : ($diff > 0 ? 'over_target' : 'under_target')];
+		}
 		return $out;
 	}
 
@@ -109,10 +115,10 @@ final class AiTasks {
 	}
 
 	/** status wording per answer language, so the model never has to translate or invent a comparison */
-	private const STATUS = [
-		'en' => ['met' => 'goal reached', 'close' => 'almost reached', 'below' => 'below the goal', 'above' => 'above the limit'],
-		'de' => ['met' => 'Ziel erreicht', 'close' => 'fast erreicht', 'below' => 'unter dem Ziel', 'above' => 'über dem Grenzwert'],
-		'it' => ['met' => 'obiettivo raggiunto', 'close' => 'quasi raggiunto', 'below' => 'sotto l’obiettivo', 'above' => 'sopra il limite'],
+	public const STATUS = [
+		'en' => ['met' => 'goal reached', 'close' => 'almost reached', 'below' => 'below the goal', 'above' => 'above the limit', 'over_target' => 'above the target weight', 'under_target' => 'below the target weight'],
+		'de' => ['met' => 'Ziel erreicht', 'close' => 'fast erreicht', 'below' => 'unter dem Ziel', 'above' => 'über dem Grenzwert', 'over_target' => 'über dem Zielgewicht', 'under_target' => 'unter dem Zielgewicht'],
+		'it' => ['met' => 'obiettivo raggiunto', 'close' => 'quasi raggiunto', 'below' => 'sotto l’obiettivo', 'above' => 'sopra il limite', 'over_target' => 'sopra il peso obiettivo', 'under_target' => 'sotto il peso obiettivo'],
 	];
 
 	public static function checkupMessages(array $ctx, string $lang): array {

@@ -129,15 +129,28 @@ class DataService {
 		$planStart = $this->import->today($uid) === $thisMonday ? $thisMonday : $nextMonday;
 		$info = Infographic::build($rows, $workouts, $goals, 'week', $end);
 		unset($info['heatmap']);
+		$summary = Insights::summary($rows, $workouts, $end, 7, 91);
+		$weightStats = Weight::stats($rows, $goals['weight'], $this->import->today($uid));
+		$present = [];
+		foreach (Insights::METRICS as $m) {
+			$present[$m] = ['period' => $summary['metrics'][$m]['period']];
+		}
+		$goalCheck = AiTasks::goalCheck($goals, $summary, $present, 7, $weightStats);
+		$lang = $this->settings->lang($uid);
+		foreach ($goalCheck as $k => $g) {
+			// ready-made wording in the report language; the model must not compare values with goals itself
+			$goalCheck[$k]['status'] = AiTasks::STATUS[$lang][$g['verdict']] ?? $g['verdict'];
+		}
 		return [
 			'app' => 'healthcheck', 'version' => 1,
 			'lang' => $this->settings->lang($uid),
 			'report_lang' => $this->settings->reportLang($uid),
 			'today' => $this->import->today($uid),
 			'data_status' => $this->status($uid),
-			'summary' => Insights::summary($rows, $workouts, $end, 7, 91),
+			'summary' => $summary,
 			'week_infographic' => $info,
 			'goals' => $goals,
+			'goal_check' => $goalCheck,
 			'progress' => Agent::progress($goals, $rows, $workouts, $end),
 			'next_week' => ['start' => $planStart, 'end' => Insights::addDays($planStart, 6),
 				'targets' => Agent::weeklyTargets($goals, $rows, $workouts, $planStart)],

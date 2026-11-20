@@ -20,7 +20,7 @@
 * Workouts in a private calendar, dashboard widget, installable web app
 
 Data stays per user. Administrators cannot see other people's data in the app.]]></description>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
     <licence>agpl</licence>
     <author>Health Check contributors</author>
     <namespace>HealthCheck</namespace>

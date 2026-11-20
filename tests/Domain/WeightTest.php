@@ -102,4 +102,25 @@ class WeightTest extends TestCase {
 		$this->assertCount(14, $e['last_14_days']);
 		$this->assertSame(30, $e['last_14_days'][12]['workout_min']);
 	}
+
+	public function testGoalCheckVerdicts(): void {
+		$goals = ['sleep_min' => 450, 'steps' => 8000, 'active_kcal' => 400, 'workouts_week' => 3, 'weight' => 90.0];
+		$mk = fn (array $avgs) => ['metrics' => array_map(fn ($a) => ['period' => ['avg' => $a]], $avgs), 'workouts' => ['count' => 2]];
+		$sum = $mk(['sleep_total' => 300, 'steps' => 7700, 'active_kcal' => 420]);
+		$present = array_map(fn ($m) => ['period' => $m['period']], $sum['metrics']);
+		$w = ['has' => true, 'last' => ['kg' => 93.4]];
+		$g = AiTasks::goalCheck($goals, $sum, $present, 7, $w);
+		$this->assertSame('below', $g['sleep_per_night']['verdict']);
+		$this->assertSame('5 h 00 min', $g['sleep_per_night']['period_average']);
+		$this->assertSame('7 h 30 min', $g['sleep_per_night']['goal']);
+		$this->assertSame('close', $g['steps_per_day']['verdict'], '7700 of 8000 is 96 %');
+		$this->assertSame('met', $g['active_energy_per_day']['verdict']);
+		$this->assertSame('below', $g['workouts_per_week']['verdict']);
+		$this->assertSame('over_target', $g['target_weight']['verdict']);
+		$this->assertSame(3.4, $g['target_weight']['difference_kg']);
+		$this->assertSame('sotto l’obiettivo', AiTasks::STATUS['it']['below']);
+		$this->assertSame('über dem Zielgewicht', AiTasks::STATUS['de']['over_target']);
+		$none = AiTasks::goalCheck(['sleep_min' => 450, 'weight' => null], $sum, $present, 7, null);
+		$this->assertFalse(isset($none['target_weight']), 'no weight goal, no weight check');
+	}
 }
