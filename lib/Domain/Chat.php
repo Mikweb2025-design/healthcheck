@@ -106,6 +106,41 @@ final class Chat {
 		return $hour < $perHour && $day < $perDay;
 	}
 
+	/** native Anthropic Messages API instead of the OpenAI format: the endpoint path ends in /v1/messages */
+	public static function isAnthropic(string $url): bool {
+		return (bool)preg_match('#^https?://[^/]+(/[^?]*)?/v1/messages/?(\?.*)?$#', $url);
+	}
+
+	/** system messages go to the top-level `system` field; no temperature (newer Claude models reject values below 1) */
+	public static function anthropicBody(array $messages, string $model, int $maxTokens): array {
+		$sys = [];
+		$msgs = [];
+		foreach ($messages as $m) {
+			$role = (string)($m['role'] ?? 'user');
+			$text = (string)($m['content'] ?? '');
+			if ($role === 'system' || $role === 'developer') {
+				$sys[] = $text;
+			} else {
+				$msgs[] = ['role' => $role === 'assistant' ? 'assistant' : 'user', 'content' => $text];
+			}
+		}
+		$b = ['model' => $model, 'max_tokens' => $maxTokens, 'messages' => $msgs];
+		if ($sys !== []) {
+			$b['system'] = implode("\n", $sys);
+		}
+		return $b;
+	}
+
+	public static function anthropicAnswer(array $resp): string {
+		$out = '';
+		foreach (($resp['content'] ?? []) as $blk) {
+			if (is_array($blk) && ($blk['type'] ?? '') === 'text') {
+				$out .= (string)($blk['text'] ?? '');
+			}
+		}
+		return self::answerOf(['choices' => [['message' => ['content' => $out]]]]);
+	}
+
 	/** text of an OpenAI-compatible chat completion response */
 	public static function answerOf(array $resp): string {
 		$c = $resp['choices'][0]['message']['content'] ?? '';

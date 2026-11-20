@@ -65,18 +65,26 @@ class Outbound {
 		if ($ai['url'] === '' || $ai['model'] === '') {
 			throw new \RuntimeException('ai_not_configured');
 		}
+		$anthropic = Chat::isAnthropic($ai['url']);
 		$headers = ['Content-Type' => 'application/json'];
-		if ($ai['key'] !== '') {
-			$headers['Authorization'] = str_starts_with($ai['key'], 'Bearer ') ? $ai['key'] : 'Bearer ' . $ai['key'];
+		$key = preg_replace('/^Bearer\s+/i', '', $ai['key']);
+		if ($anthropic) {
+			$headers['x-api-key'] = (string)$key;
+			$headers['anthropic-version'] = '2023-06-01';
+			$body = Chat::anthropicBody($messages, $ai['model'], $ai['max_tokens']);
+		} else {
+			if ($ai['key'] !== '') {
+				$headers['Authorization'] = 'Bearer ' . $key;
+			}
+			$body = ['model' => $ai['model'], 'messages' => $messages, 'max_tokens' => $ai['max_tokens'], 'reasoning_effort' => 'low', 'temperature' => 0.3];
 		}
 		$r = $this->clients->newClient()->post($ai['url'], [
-			'body' => json_encode(['model' => $ai['model'], 'messages' => $messages, 'max_tokens' => $ai['max_tokens'], 'reasoning_effort' => 'low', 'temperature' => 0.3],
-				JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+			'body' => json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
 			'headers' => $headers,
 			'timeout' => $ai['timeout'],
 		]);
 		$j = json_decode((string)$r->getBody(), true);
-		$answer = Chat::answerOf(is_array($j) ? $j : []);
+		$answer = $anthropic ? Chat::anthropicAnswer(is_array($j) ? $j : []) : Chat::answerOf(is_array($j) ? $j : []);
 		if ($answer === '') {
 			throw new \RuntimeException('ai_empty');
 		}

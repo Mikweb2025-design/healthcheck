@@ -74,4 +74,16 @@ class AdminConfigTest extends TestCase {
 		$this->assertFalse(Chat::allowed($times, $now, 3, 40));
 		$this->assertFalse(Chat::allowed($times, $now, 10, 3));
 	}
+
+	public function testAnthropicNativeFormat(): void {
+		$this->assertTrue(Chat::isAnthropic('https://api.anthropic.com/v1/messages'));
+		$this->assertFalse(Chat::isAnthropic('https://api.openai.com/v1/chat/completions'));
+		$b = Chat::anthropicBody([['role' => 'system', 'content' => 'Be brief.'], ['role' => 'user', 'content' => 'Hi']], 'claude-sonnet-5-5', 500);
+		$this->assertSame('Be brief.', $b['system']);
+		$this->assertSame([['role' => 'user', 'content' => 'Hi']], $b['messages']);
+		$this->assertFalse(array_key_exists('temperature', $b));
+		$this->assertSame('Hello there.', Chat::anthropicAnswer(['content' => [['type' => 'thinking', 'thinking' => 'x'], ['type' => 'text', 'text' => 'Hello '], ['type' => 'text', 'text' => 'there.']]]));
+		$this->assertSame('', Chat::anthropicAnswer([]));
+		$this->assertSame('https://api.anthropic.com/v1/messages', AdminConfig::PROVIDERS['anthropic']['url']);
+	}
 }

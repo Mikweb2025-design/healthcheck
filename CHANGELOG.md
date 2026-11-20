@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 – 2026-11-20
+
+* Claude (Anthropic API) as an AI provider in the administration page, using the native Messages API
+  (`x-api-key`, system prompt as its own field, no `temperature`, which newer Claude models reject). It needs an API key
+  from the Claude Console: a Claude.ai / Claude Code subscription login cannot be used by other applications.
+  Any other endpoint keeps the OpenAI-compatible format.
+* OpenCode Zen as a provider preset (OpenAI-compatible, needs a Zen API key; the free models only answer inside
+  OpenCode itself, so they cannot be used here)
+
 ## 0.2.0 – 2026-11-20
 
 * **Administration settings** (Settings → Administration → Health Check), also in German and Italian:

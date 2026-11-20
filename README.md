@@ -138,7 +138,7 @@ occ app:enable healthcheck
 
 ### Administration settings
 
-Settings → Administration → **Health Check** (en/de/it): AI on/off, provider (IONOS, OpenAI, Mistral, OpenRouter,
+Settings → Administration → **Health Check** (en/de/it): AI on/off, provider (IONOS, OpenAI, Claude, OpenCode Zen, Mistral, OpenRouter,
 Ollama or any OpenAI-compatible endpoint), model, write-only API key, connection test, per-feature switches, rate
 limits, who writes the weekly report (your n8n automation, or this server with the configured AI), access by group,
 phone push and webhook switches, default languages. See [docs/INSTALL.md](docs/INSTALL.md#administration-settings).
