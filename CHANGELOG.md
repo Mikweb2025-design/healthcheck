@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 – 2026-11-20
+
+* **Daily check-in**: one tap for energy (1–5) with an optional short note on "Today"; last 14 days as bars, 7-day
+  average; after about ten check-ins with sleep data a neutral line shows whether your energy differs after nights with
+  at least 7 h of sleep (a pattern in your own data, never a diagnosis). Stored per user, deleted with "Delete all my data"
+  and with the account.
+* **Take my data with me**: download everything the app stored (days, workouts, weight, check-ins, AI reports) as JSON, or
+  the daily table as CSV, from Data
+* New app icons: three rings around a heart with a pulse line; sharper navigation icon (also for the dashboard widget)
+
 ## 0.2.2 – 2026-11-20
 
 * OpenCode as a provider through a small bridge (`bridge/`): an OpenAI-compatible service on the Docker host that runs

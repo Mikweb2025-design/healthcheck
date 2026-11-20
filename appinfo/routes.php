@@ -32,6 +32,10 @@ return [
 		['name' => 'api#weights', 'url' => '/api/weights', 'verb' => 'GET'],
 		['name' => 'api#addWeight', 'url' => '/api/weights', 'verb' => 'POST'],
 		['name' => 'api#deleteWeight', 'url' => '/api/weights/{id}', 'verb' => 'DELETE', 'requirements' => ['id' => '\d+']],
+		['name' => 'api#checkins', 'url' => '/api/checkins', 'verb' => 'GET'],
+		['name' => 'api#addCheckin', 'url' => '/api/checkins', 'verb' => 'POST'],
+		['name' => 'api#deleteCheckin', 'url' => '/api/checkins/{day}', 'verb' => 'DELETE', 'requirements' => ['day' => '\d{4}-\d{2}-\d{2}']],
+		['name' => 'api#export', 'url' => '/api/export', 'verb' => 'GET'],
 		['name' => 'api#aiTask', 'url' => '/api/ai/task/{kind}', 'verb' => 'POST', 'requirements' => ['kind' => '[a-z]+']],
 		['name' => 'api#deleteAll', 'url' => '/api/data', 'verb' => 'DELETE'],
 

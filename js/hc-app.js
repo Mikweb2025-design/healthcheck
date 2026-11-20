@@ -115,6 +115,7 @@
     var ws = ov.warnings || [];
     main.appendChild(card(t('hints_title'), ws.length ? ws.map(hintItem).concat([h('p', { class: 'hc-muted', text: t('hints_doctor') }), disclaimer()]) : [h('p', { text: t('hints_none') }), disclaimer()], { id: 'hc-hints', cls: ws.length ? 'hc-card-hint' : '' }));
     main.appendChild(weightCard(ov));
+    main.appendChild(checkinCard());
 
     // last night + vitals
     var lastSleep = null, lastVitals = null;
@@ -168,6 +169,41 @@
 
   /* ---------- weight card with quick entry ---------- */
   var BMI_COL = { under: '#3ba7e0', normal: '#2bb673', over: '#f2994a', obese: '#e5484d' };
+  /* daily check-in: one tap for energy 1-5, optional note, neutral link to sleep */
+  function checkinCard() {
+    var body = h('div', {}), msg = h('span', { class: 'hc-muted hc-small' });
+    var c = card(t('ci_title'), [body]);
+    function draw(r) {
+      HC.clear(body);
+      var cur = r.todayEntry ? r.todayEntry.energy : 0;
+      var faces = ['😴', '😕', '😐', '🙂', '😄'];
+      var row = h('div', { class: 'hc-row', role: 'group', 'aria-label': t('ci_title') }, faces.map(function (f, i) {
+        var b = h('button', { type: 'button', class: 'hc-btn' + (cur === i + 1 ? ' hc-btn-primary' : ''), title: t('ci_e' + (i + 1)), 'aria-label': (i + 1) + ' ' + t('ci_e' + (i + 1)), 'aria-pressed': cur === i + 1 ? 'true' : 'false', text: f + ' ' + (i + 1) });
+        b.addEventListener('click', function () {
+          HC.api('POST', '/api/checkins', { energy: i + 1, note: note.value }).then(function (x) { draw(x); msg.textContent = t('ci_saved'); }, function (e) { toast(errText(e), true); });
+        });
+        return b;
+      }));
+      var note = h('input', { type: 'text', class: 'hc-input', maxlength: '200', placeholder: t('ci_note'), value: r.todayEntry && r.todayEntry.note ? r.todayEntry.note : '' });
+      var dots = h('div', { class: 'hc-row hc-small', 'aria-hidden': 'true' }, r.entries.slice(-14).map(function (e) { return h('span', { title: HC.day(e.day) + ': ' + e.energy + '/5', text: ['·', '▁', '▂', '▄', '▆', '█'][e.energy] }); }));
+      body.appendChild(h('p', { class: 'hc-muted', text: t('ci_hint') }));
+      body.appendChild(row); body.appendChild(note);
+      var info = [];
+      if (r.todayEntry) { info.push(t('ci_today', { v: r.todayEntry.energy })); }
+      if (r.avg7 !== null && r.avg7 !== undefined) { info.push(t('ci_avg', { v: HC.num(r.avg7, 1) })); }
+      body.appendChild(h('p', { class: 'hc-small' }, [info.join(' · ') + ' ', msg]));
+      if (r.entries.length > 1) { body.appendChild(dots); }
+      body.appendChild(h('p', { class: 'hc-muted hc-small', text: r.link ? t('ci_link', { h: Math.round(r.link.threshold_min / 60) + ' h', a: HC.num(r.link.enough, 1), b: HC.num(r.link.short, 1), n: r.link.n }) : t('ci_wait') }));
+      if (r.todayEntry) {
+        var del = h('button', { type: 'button', class: 'hc-btn hc-btn-small', text: t('ci_remove') });
+        del.addEventListener('click', function () { HC.api('DELETE', '/api/checkins/' + r.today).then(draw, function (e) { toast(errText(e), true); }); });
+        body.appendChild(del);
+      }
+    }
+    HC.api('GET', '/api/checkins').then(draw, function () { c.hidden = true; });
+    return c;
+  }
+
   function weightCard(ov) {
     var w = ov.weight, g = ov.settings.goals, body = [];
     if (w && w.has) {
@@ -514,6 +550,10 @@
       }))])]), main.children[1] || null);
     });
     if (featIntegration('ingest')) { main.appendChild(pushCard(st)); }
+    var exBase = HC.rootEl().getAttribute('data-base');
+    main.appendChild(card(t('export_title'), [h('p', { class: 'hc-muted', text: t('export_hint') }), h('div', { class: 'hc-row' }, [
+      h('a', { class: 'hc-btn', href: exBase + '/api/export?format=json', download: '', text: t('export_json') }),
+      h('a', { class: 'hc-btn', href: exBase + '/api/export?format=csv', download: '', text: t('export_csv') })])]));
     main.appendChild(installHint(true));
     // settings
     var f = h('form', { class: 'hc-form' });

@@ -212,7 +212,7 @@ class Store {
 
 	public function counts(string $uid): array {
 		$c = [];
-		foreach (['hc_day' => 'days', 'hc_workout' => 'workouts', 'hc_import' => 'imports', 'hc_ai' => 'reports', 'hc_chat' => 'chats'] as $t => $k) {
+		foreach (['hc_day' => 'days', 'hc_workout' => 'workouts', 'hc_import' => 'imports', 'hc_ai' => 'reports', 'hc_chat' => 'chats', 'hc_checkin' => 'checkins'] as $t => $k) {
 			$q = $this->db->getQueryBuilder();
 			$q->select($q->func()->count('*', 'n'))->from($t)->where($q->expr()->eq('uid', $q->createNamedParameter($uid)));
 			$c[$k] = (int)$q->executeQuery()->fetchOne();
@@ -297,6 +297,29 @@ class Store {
 		$q->select('created_at')->from('hc_chat')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))
 			->andWhere($q->expr()->gt('created_at', $q->createNamedParameter($since, IQueryBuilder::PARAM_INT)));
 		return array_map('intval', $q->executeQuery()->fetchAll(\PDO::FETCH_COLUMN));
+	}
+
+	/** @return list<array{day:string,energy:int,note:?string}> oldest first */
+	public function checkins(string $uid, ?string $from = null): array {
+		$q = $this->db->getQueryBuilder();
+		$q->select('day', 'energy', 'note')->from('hc_checkin')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->orderBy('day', 'ASC');
+		if ($from !== null) {
+			$q->andWhere($q->expr()->gte('day', $q->createNamedParameter($from)));
+		}
+		return array_map(fn ($r) => ['day' => (string)$r['day'], 'energy' => (int)$r['energy'], 'note' => $r['note'] === null ? null : (string)$r['note']], $q->executeQuery()->fetchAll());
+	}
+
+	public function saveCheckin(string $uid, string $day, int $energy, ?string $note, int $now): void {
+		$d = $this->db->getQueryBuilder();
+		$d->delete('hc_checkin')->where($d->expr()->eq('uid', $d->createNamedParameter($uid)))->andWhere($d->expr()->eq('day', $d->createNamedParameter($day)))->executeStatement();
+		$q = $this->db->getQueryBuilder();
+		$q->insert('hc_checkin')->values(['uid' => $q->createNamedParameter($uid), 'day' => $q->createNamedParameter($day), 'energy' => $q->createNamedParameter($energy, IQueryBuilder::PARAM_INT),
+			'note' => $q->createNamedParameter($note), 'created_at' => $q->createNamedParameter($now, IQueryBuilder::PARAM_INT)])->executeStatement();
+	}
+
+	public function deleteCheckin(string $uid, string $day): int {
+		$q = $this->db->getQueryBuilder();
+		return $q->delete('hc_checkin')->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->andWhere($q->expr()->eq('day', $q->createNamedParameter($day)))->executeStatement();
 	}
 
 	/** number of AI calls (chat and tasks) of all users since a time; counts only */
@@ -455,7 +478,7 @@ class Store {
 
 	public function deleteAll(string $uid): array {
 		$out = [];
-		foreach (['hc_day', 'hc_workout', 'hc_import', 'hc_ai', 'hc_chat', 'hc_weight', 'hc_raw'] as $t) {
+		foreach (['hc_day', 'hc_workout', 'hc_import', 'hc_ai', 'hc_chat', 'hc_weight', 'hc_raw', 'hc_checkin'] as $t) {
 			$q = $this->db->getQueryBuilder();
 			$out[$t] = $q->delete($t)->where($q->expr()->eq('uid', $q->createNamedParameter($uid)))->executeStatement();
 		}

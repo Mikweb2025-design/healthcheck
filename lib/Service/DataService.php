@@ -12,6 +12,7 @@ use OCA\HealthCheck\Domain\AiTasks;
 use OCA\HealthCheck\Domain\Correlations;
 use OCA\HealthCheck\Domain\Weight;
 use OCA\HealthCheck\Domain\Chat;
+use OCA\HealthCheck\Domain\Checkins;
 use OCA\HealthCheck\Domain\Infographic;
 use OCA\HealthCheck\Domain\Insights;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -315,6 +316,41 @@ class DataService {
 			$this->store->saveChat($uid, $request, '', '', 'error', $now, $kind);
 			throw $e;
 		}
+	}
+
+	// ---- daily check-in and export -------------------------------------------------------------------------------
+	public function checkins(string $uid): array {
+		$today = $this->import->today($uid);
+		$from = Insights::addDays($today, -89);
+		$list = $this->store->checkins($uid, $from);
+		$days = $this->store->days($uid, $from);
+		$todayRow = null;
+		foreach ($list as $c) {
+			if ($c['day'] === $today) {
+				$todayRow = $c;
+			}
+		}
+		return ['today' => $today, 'entries' => array_slice($list, -30), 'todayEntry' => $todayRow, 'avg7' => Checkins::average($list, 7), 'link' => Checkins::sleepLink($days, $list)];
+	}
+
+	public function addCheckin(string $uid, array $in): array {
+		$c = Checkins::clean($in, $this->import->today($uid));
+		$this->store->saveCheckin($uid, $c['day'], $c['energy'], $c['note'], $this->time->getTime());
+		return $this->checkins($uid);
+	}
+
+	public function deleteCheckin(string $uid, string $day): array {
+		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
+			throw new \InvalidArgumentException('day');
+		}
+		$this->store->deleteCheckin($uid, $day);
+		return $this->checkins($uid);
+	}
+
+	/** everything stored for the person as one portable document (no AI chat history, no raw samples) */
+	public function export(string $uid): array {
+		return ['app' => 'healthcheck', 'exported_at' => gmdate('c'), 'days' => $this->store->days($uid), 'workouts' => $this->store->workouts($uid),
+			'weights' => $this->store->weights($uid), 'checkins' => $this->store->checkins($uid), 'ai_reports' => $this->store->aiReports($uid, 100)];
 	}
 
 	public function deleteAll(string $uid, bool $calendar): array {

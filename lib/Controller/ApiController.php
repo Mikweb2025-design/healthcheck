@@ -19,7 +19,9 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\Response;
 use OCP\IRequest;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
@@ -211,6 +213,46 @@ class ApiController extends Controller {
 	#[NoAdminRequired]
 	public function deleteWeight(int $id): JSONResponse {
 		return $this->run(fn ($uid) => $this->data->deleteWeight($uid, $id));
+	}
+
+	#[NoAdminRequired]
+	public function checkins(): JSONResponse {
+		return $this->run(fn ($uid) => $this->data->checkins($uid));
+	}
+
+	#[NoAdminRequired]
+	public function addCheckin(): JSONResponse {
+		return $this->run(fn ($uid) => $this->data->addCheckin($uid, $this->request->getParams()));
+	}
+
+	#[NoAdminRequired]
+	public function deleteCheckin(string $day): JSONResponse {
+		return $this->run(fn ($uid) => $this->data->deleteCheckin($uid, $day));
+	}
+
+	/** download of the person's own data: format=json (everything) or csv (the daily table) */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function export(string $format = 'json'): Response {
+		try {
+			$uid = $this->uid();
+		} catch (\DomainException $e) {
+			return new JSONResponse(['error' => $e->getMessage()], $e->getMessage() === 'forbidden' ? Http::STATUS_FORBIDDEN : Http::STATUS_UNAUTHORIZED);
+		}
+		$doc = $this->data->export($uid);
+		$stamp = gmdate('Ymd');
+		if ($format === 'csv') {
+			$rows = $doc['days'];
+			$cols = $rows === [] ? ['day'] : array_keys($rows[0]);
+			$h = fopen('php://temp', 'r+');
+			fputcsv($h, $cols, ',', '"', '\\');
+			foreach ($rows as $r) {
+				fputcsv($h, array_map(fn ($c) => is_scalar($r[$c] ?? '') || ($r[$c] ?? null) === null ? ($r[$c] ?? '') : json_encode($r[$c]), $cols), ',', '"', '\\');
+			}
+			rewind($h);
+			return new DataDownloadResponse((string)stream_get_contents($h), 'healthcheck-days-' . $stamp . '.csv', 'text/csv; charset=utf-8');
+		}
+		return new DataDownloadResponse((string)json_encode($doc, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'healthcheck-' . $stamp . '.json', 'application/json');
 	}
 
 	#[NoAdminRequired]

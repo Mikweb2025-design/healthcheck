@@ -29,6 +29,8 @@ Any watch that writes into Apple Health works. It was built and tested with a **
 - **Daily push from the iPhone**: an Apple Shortcut sends the last 48 hours every morning when you stop the alarm.
 - **Three rings** (sleep, recovery, movement) with transparent formulas, **trend charts** with 7-day averages and your
   personal normal range, back to the first recorded day.
+- **Daily check-in**: one tap for energy (1–5) and a neutral link to your sleep after a few weeks.
+- **Your data stays yours**: download everything as JSON or the daily table as CSV.
 - **Weight** as a first-class metric: BMI, body fat, 7/30/90-day change, target weight with an ETA, manual weigh-ins.
 - **Early hints** (elevated resting heart rate, SpO₂ drop, short or shallow sleep, weight change): neutral, never a
   diagnosis, with an AI "Why?" explanation.
