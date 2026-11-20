@@ -6,6 +6,8 @@ your own Nextcloud. Nothing goes to a vendor cloud: data, calendar, reports and 
 Any watch that writes into Apple Health works. It was built and tested with a **Huawei Watch GT 5 Pro**
 (Huawei Health → Apple Health), which has no usable open API for individuals.
 
+**Article:** [Health Check: my smartwatch data in my own Nextcloud](https://daniele-michelin.com/en/blog/health-check-nextcloud/) (also in [German](https://daniele-michelin.com/blog/gesundheits-check-nextcloud/) and [Italian](https://daniele-michelin.com/it/blog/health-check-nextcloud/)) · author: [daniele-michelin.com](https://daniele-michelin.com/en/)
+
 > **Not a medical device and not medical advice.** All hints compare you only with your own recent past and never diagnose.
 
 ![How Health Check works](docs/img/how-it-works.svg)
