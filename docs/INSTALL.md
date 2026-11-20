@@ -36,19 +36,32 @@ bin/pack.sh     # runs the PHP and JS tests, then writes dist/healthcheck-<versi
 4. Optional: install the web app on the home screen (Safari → Share → Add to Home Screen). The home-screen app has its
    own storage, so sign in once more there.
 
-## AI features (optional)
+## Administration settings
 
-The chat, the AI check-up, the "Why?" explanations and the doctor questions use any OpenAI-compatible
-`/v1/chat/completions` endpoint. Only aggregates (daily, weekly, monthly statistics) are sent, never single records.
+Settings → Administration → **Health Check** (en/de/it). Everything below can also be set there; no `occ` needed.
+
+| Setting | What it does |
+| --- | --- |
+| Access → groups | Limit the app to groups. Nothing ticked = every user. (Nextcloud's own "enable for specific groups" in Apps works as well.) |
+| AI | Master switch, provider preset, endpoint, model, API key (write-only, stored as a sensitive value), **Test connection** |
+| AI features | Separate switches for the chat and for the check-up / explanations / doctor questions |
+| Limits | Requests per user per hour and day, maximum answer length, timeout |
+| Weekly report | **An automation** (the user's n8n webhook, see below) or **this server** with the AI above, Monday morning in the user's time zone |
+| Integrations | Allow the daily phone push; allow a user webhook |
+| Defaults | App language when the Nextcloud language is not supported; doctor report language |
+| Usage | Number of users and AI requests in the last 24 h (counts only) |
+
+Only aggregates (daily, weekly, monthly statistics) are sent to the AI, never single records. Choose a provider that
+matches your privacy requirements (for example one hosted in your jurisdiction, or a local model such as Ollama).
+A local endpoint needs `'allow_local_remote_servers' => true` in `config.php`.
+
+Equivalent `occ` commands (the admin page is easier):
 
 ```bash
 occ config:app:set healthcheck ai_url   --value=https://<provider>/v1/chat/completions
 occ config:app:set healthcheck ai_model --value=<model>
 occ config:app:set healthcheck ai_api_key --sensitive --value='Bearer <key>'
 ```
-
-Choose a provider that matches your privacy requirements (for example one hosted in your jurisdiction, or a local
-model behind an OpenAI-compatible server). Requests are rate limited per user.
 
 ## Weekly AI report with n8n
 

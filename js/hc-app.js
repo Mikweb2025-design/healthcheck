@@ -145,9 +145,14 @@
     main.appendChild(installHint());
   }
   /* one early hint with an on-demand AI explanation ("why?") */
+  /* the administrator can switch AI features and integrations off; unknown = on, the server decides */
+  function feat(k, def) { var se = state && state.ov && state.ov.settings; return se && se[k] !== undefined ? se[k] : def; }
+  function featIntegration(k) { var se = state && state.ov && state.ov.settings; return !(se && se.features && se.features[k] === false); }
+
   function hintItem(w) {
     var out = h('div', { class: 'hc-ai-out' });
     var b = h('button', { type: 'button', class: 'hc-btn hc-btn-small', text: t('why') });
+    if (!feat('aiTasksAvailable', true)) { b.hidden = true; }
     b.addEventListener('click', function () {
       b.disabled = true; HC.clear(out).appendChild(h('p', { class: 'hc-muted', text: t('ask_thinking') }));
       HC.api('POST', '/api/ai/task/explain', { key: w.key }).then(function (r) {
@@ -410,6 +415,7 @@
       b.disabled = true; HC.clear(out).appendChild(h('p', { class: 'hc-muted', text: t('ask_thinking') }));
       HC.api('POST', '/api/ai/task/checkup', { days: sel.value }).then(function (r) { renderCheckup(out, r); }, function (e) { HC.clear(out).appendChild(h('p', { class: 'hc-a-err', text: errText(e) })); }).then(function () { b.disabled = false; });
     }, 'hc-btn-primary');
+    if (!feat('aiTasksAvailable', true)) { b.hidden = true; sel.hidden = true; }
     if (latest && latest.result) { renderCheckup(out, latest); }
     return card(t('checkup_title'), [h('p', { class: 'hc-muted', text: t('checkup_intro') }), h('div', { class: 'hc-row' }, [sel, b]), out, disclaimer()], { id: 'hc-checkup' });
   }
@@ -507,7 +513,7 @@
         return h('tr', {}, [h('td', { text: HC.dateTime(i.startedAt) }), h('td', { text: t('st_' + i.status) }), h('td', { text: i.days !== null ? t('import_row', { d: i.days, w: i.workouts }) : (i.message || '') }), h('td', { class: 'hc-num', text: i.durationMs !== null ? HC.num(i.durationMs / 1000, 1) + ' s' : '' })]);
       }))])]), main.children[1] || null);
     });
-    main.appendChild(pushCard(st));
+    if (featIntegration('ingest')) { main.appendChild(pushCard(st)); }
     main.appendChild(installHint(true));
     // settings
     var f = h('form', { class: 'hc-form' });
@@ -520,10 +526,13 @@
     f.appendChild(check('nudges', t('set_nudges'), se.nudges));
     f.appendChild(check('calendarSync', t('set_cal'), se.calendarSync));
     f.appendChild(check('calendarDaily', t('set_cal_daily'), se.calendarDaily));
-    f.appendChild(h('label', { class: 'hc-field' }, [h('span', { text: t('set_webhook') }), h('input', { name: 'webhookUrl', type: 'url', value: se.webhookUrl, placeholder: 'https://…/webhook/…' })]));
+    var hookField = h('label', { class: 'hc-field' }, [h('span', { text: t('set_webhook') }), h('input', { name: 'webhookUrl', type: 'url', value: se.webhookUrl, placeholder: 'https://…/webhook/…' })]);
+    f.appendChild(hookField);
     var secretOut = h('code', { class: 'hc-secret' });
-    f.appendChild(h('div', { class: 'hc-row' }, [h('span', { class: 'hc-muted', text: se.webhookSecretSet ? t('secret_set') : t('secret_unset') }),
-      btn(t('secret_new'), function () { if (!root.confirm(t('secret_confirm'))) { return; } HC.api('POST', '/api/settings/secret').then(function (r) { secretOut.textContent = r.secret; toast(t('secret_copy')); }); }), secretOut]));
+    var hookRow = h('div', { class: 'hc-row' }, [h('span', { class: 'hc-muted', text: se.webhookSecretSet ? t('secret_set') : t('secret_unset') }),
+      btn(t('secret_new'), function () { if (!root.confirm(t('secret_confirm'))) { return; } HC.api('POST', '/api/settings/secret').then(function (r) { secretOut.textContent = r.secret; toast(t('secret_copy')); }); }), secretOut]);
+    f.appendChild(hookRow);
+    if (!featIntegration('webhooks')) { hookField.hidden = true; hookRow.hidden = true; }
     f.appendChild(h('button', { type: 'submit', class: 'hc-btn hc-btn-primary', text: t('save') }));
     f.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -657,6 +666,7 @@
       qb.disabled = true; HC.clear(qBox).appendChild(h('p', { class: 'hc-muted', text: t('ask_thinking') }));
       HC.api('POST', '/api/ai/task/doctorq', { days: r.summary.period.days, lang: HC.i18n.lang() }).then(renderQ, function (e) { HC.clear(qBox).appendChild(h('p', { text: errText(e) })); }).then(function () { qb.disabled = false; });
     }, 'hc-noprint');
+    if (!feat('aiTasksAvailable', true)) { qb.hidden = true; }
     renderQ(r.doctorQuestions);
     page.appendChild(h('section', { class: 'hc-rep-q' }, [h('h2', { text: t('dq_title') }), qBox, qb]));
     page.appendChild(h('footer', { class: 'hc-rep-foot' }, [h('p', { text: t('rep_disclaimer') }), h('p', { class: 'hc-small', text: t('rep_method') })]));

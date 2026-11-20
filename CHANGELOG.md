@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 – 2026-11-20
+
+* **Administration settings** (Settings → Administration → Health Check), also in German and Italian:
+  AI on/off, provider presets (IONOS, OpenAI, Mistral, OpenRouter, Ollama, custom OpenAI-compatible endpoint), model,
+  write-only API key stored as a sensitive value, "Test connection", separate switches for the chat and for the
+  check-up / explanations / doctor questions, requests per user per hour and day, maximum answer length and timeout
+* Who writes the weekly report: an automation (n8n, as before) or this server with the configured AI (Monday morning,
+  user time, no automation needed)
+* Access: limit the app to groups (empty = every user); switches for the phone push and the user webhook; defaults for
+  the app language (when the Nextcloud language is not supported) and the doctor report language; usage counters
+  (users, AI requests in 24 h; counts only, never health data)
+* User interface hides the AI buttons, the webhook and the push card when the administrator switched them off
+* Ollama and other keyless endpoints work (no Authorization header without a key)
+* Packaging now includes `templates/`
+
 ## 0.1.5 – 2026-11-20
 
 * Weekly n8n report: goal comparisons are computed in code (`goal_check` in `/api/automation/summary` with verdicts

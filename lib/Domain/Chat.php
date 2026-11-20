@@ -100,10 +100,10 @@ final class Chat {
 	}
 
 	/** @param list<int> $times creation times of earlier questions */
-	public static function allowed(array $times, int $now): bool {
+	public static function allowed(array $times, int $now, int $perHour = self::PER_HOUR, int $perDay = self::PER_DAY): bool {
 		$hour = count(array_filter($times, fn ($t) => $t > $now - 3600));
 		$day = count(array_filter($times, fn ($t) => $t > $now - 86400));
-		return $hour < self::PER_HOUR && $day < self::PER_DAY;
+		return $hour < $perHour && $day < $perDay;
 	}
 
 	/** text of an OpenAI-compatible chat completion response */

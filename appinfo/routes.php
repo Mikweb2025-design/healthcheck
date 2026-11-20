@@ -35,6 +35,10 @@ return [
 		['name' => 'api#aiTask', 'url' => '/api/ai/task/{kind}', 'verb' => 'POST', 'requirements' => ['kind' => '[a-z]+']],
 		['name' => 'api#deleteAll', 'url' => '/api/data', 'verb' => 'DELETE'],
 
+		['name' => 'admin#get', 'url' => '/api/admin/settings', 'verb' => 'GET'],
+		['name' => 'admin#save', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
+		['name' => 'admin#test', 'url' => '/api/admin/test', 'verb' => 'POST'],
+
 		['name' => 'ingest#push', 'url' => '/api/ingest', 'verb' => 'POST'],
 		['name' => 'ingest#shortcut', 'url' => '/shortcut', 'verb' => 'GET'],
 		['name' => 'api#ingestToken', 'url' => '/api/ingest/token', 'verb' => 'POST'],

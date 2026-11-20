@@ -10,6 +10,7 @@ namespace OCA\HealthCheck\Controller;
 use OCA\HealthCheck\AppInfo\Application;
 use OCA\HealthCheck\Domain\Ingest;
 use OCA\HealthCheck\Service\IngestService;
+use OCA\HealthCheck\Service\Settings;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\AnonRateLimit;
@@ -28,7 +29,7 @@ use Psr\Log\LoggerInterface;
  * "Authorization: Bearer"), never by a Nextcloud session; brute force protected and rate limited.
  */
 class IngestController extends Controller {
-	public function __construct(IRequest $request, private IngestService $ingest, private LoggerInterface $logger) {
+	public function __construct(IRequest $request, private IngestService $ingest, private Settings $settings, private LoggerInterface $logger) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
@@ -46,6 +47,9 @@ class IngestController extends Controller {
 			$r = new JSONResponse(['error' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
 			$r->throttle(['action' => 'hc_ingest']);
 			return $r;
+		}
+		if (!$this->settings->adminBool('allow_ingest') || !$this->settings->userAllowed($uid)) {
+			return new JSONResponse(['error' => 'disabled'], Http::STATUS_FORBIDDEN);
 		}
 		$body = (string)file_get_contents('php://input', false, null, 0, Ingest::MAX_BYTES + 1);
 		if (strlen($body) > Ingest::MAX_BYTES) {

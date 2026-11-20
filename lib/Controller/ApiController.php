@@ -49,6 +49,9 @@ class ApiController extends Controller {
 		if ($u === null) {
 			throw new \DomainException('unauthorized');
 		}
+		if (!$this->settings->userAllowed($u->getUID())) {
+			throw new \DomainException('forbidden');
+		}
 		return $u->getUID();
 	}
 
@@ -56,7 +59,7 @@ class ApiController extends Controller {
 		try {
 			return new JSONResponse($fn($this->uid()));
 		} catch (\DomainException $e) {
-			return new JSONResponse(['error' => $e->getMessage()], $e->getMessage() === 'unauthorized' ? Http::STATUS_UNAUTHORIZED : Http::STATUS_CONFLICT);
+			return new JSONResponse(['error' => $e->getMessage()], match ($e->getMessage()) { 'unauthorized' => Http::STATUS_UNAUTHORIZED, 'forbidden' => Http::STATUS_FORBIDDEN, default => Http::STATUS_CONFLICT });
 		} catch (\InvalidArgumentException $e) {
 			return new JSONResponse(['error' => 'validation', 'fields' => [$e->getMessage()]], Http::STATUS_BAD_REQUEST);
 		} catch (\OverflowException $e) {
@@ -173,7 +176,7 @@ class ApiController extends Controller {
 
 	#[NoAdminRequired]
 	public function chats(): JSONResponse {
-		return $this->run(fn ($uid) => ['chats' => $this->store->chats($uid, 20), 'available' => $this->settings->aiConfigured()]);
+		return $this->run(fn ($uid) => ['chats' => $this->store->chats($uid, 20), 'available' => $this->settings->aiConfigured() && $this->settings->adminBool('ai_chat')]);
 	}
 
 	#[NoAdminRequired]

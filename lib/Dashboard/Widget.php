@@ -65,6 +65,9 @@ class Widget implements IAPIWidgetV2, IButtonWidget, IIconWidget {
 	public function getItemsV2(string $userId, ?string $since = null, int $limit = 7): WidgetItems {
 		$lang = $this->settings->lang($userId);
 		$link = $this->urls->linkToRouteAbsolute('healthcheck.page.index');
+		if (!$this->settings->userAllowed($userId)) {
+			return new WidgetItems([], '');
+		}
 		try {
 			$rows = $this->store->days($userId, Insights::addDays(gmdate('Y-m-d'), -400));
 			if ($rows === []) {

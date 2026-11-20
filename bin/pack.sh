@@ -19,7 +19,7 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 DEST="$STAGE/healthcheck"
 mkdir -p "$DEST" "$OUT"
-for item in appinfo lib l10n js css img LICENSE README.md CHANGELOG.md; do
+for item in appinfo lib l10n js css img templates LICENSE README.md CHANGELOG.md; do
 	[ -e "$item" ] && cp -R "$item" "$DEST/"
 done
 mkdir -p "$DEST/shortcuts" && cp shortcuts/*.shortcut "$DEST/shortcuts/" 2>/dev/null || true

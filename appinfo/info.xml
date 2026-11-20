@@ -20,7 +20,7 @@
 * Workouts in a private calendar, dashboard widget, installable web app
 
 Data stays per user. Administrators cannot see other people's data in the app.]]></description>
-    <version>0.1.5</version>
+    <version>0.2.0</version>
     <licence>agpl</licence>
     <author>Health Check contributors</author>
     <namespace>HealthCheck</namespace>
@@ -45,7 +45,12 @@ Data stays per user. Administrators cannot see other people's data in the app.]]
     </dependencies>
     <background-jobs>
         <job>OCA\HealthCheck\Cron\ImportJob</job>
+        <job>OCA\HealthCheck\Cron\WeeklyReportJob</job>
     </background-jobs>
+    <settings>
+        <admin>OCA\HealthCheck\Settings\Admin</admin>
+        <admin-section>OCA\HealthCheck\Settings\AdminSection</admin-section>
+    </settings>
     <navigations>
         <navigation>
             <name>Health Check</name>

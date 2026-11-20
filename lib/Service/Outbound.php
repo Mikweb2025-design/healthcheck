@@ -28,6 +28,9 @@ class Outbound {
 
 	/** @return array{ok:bool,status:int,error?:string} */
 	public function webhook(string $uid, string $event, array $data = []): array {
+		if (!$this->settings->adminBool('allow_webhooks')) {
+			return ['ok' => false, 'status' => 0, 'error' => 'not_configured'];
+		}
 		$url = $this->settings->get($uid, 'webhook_url');
 		$secret = $this->settings->get($uid, 'webhook_secret');
 		if ($url === '' || $secret === '') {
@@ -51,16 +54,26 @@ class Outbound {
 
 	/** @return array{answer:string,model:string} */
 	public function chat(array $messages): array {
-		$ai = $this->settings->ai();
-		if ($ai['key'] === '') {
+		return $this->chatWith($this->settings->ai(), $messages);
+	}
+
+	/**
+	 * @param array{url:string,model:string,key:string,max_tokens:int,timeout:int} $ai
+	 * @return array{answer:string,model:string}
+	 */
+	public function chatWith(array $ai, array $messages): array {
+		if ($ai['url'] === '' || $ai['model'] === '') {
 			throw new \RuntimeException('ai_not_configured');
 		}
-		$auth = str_starts_with($ai['key'], 'Bearer ') ? $ai['key'] : 'Bearer ' . $ai['key'];
+		$headers = ['Content-Type' => 'application/json'];
+		if ($ai['key'] !== '') {
+			$headers['Authorization'] = str_starts_with($ai['key'], 'Bearer ') ? $ai['key'] : 'Bearer ' . $ai['key'];
+		}
 		$r = $this->clients->newClient()->post($ai['url'], [
-			'body' => json_encode(['model' => $ai['model'], 'messages' => $messages, 'max_tokens' => 3000, 'reasoning_effort' => 'low', 'temperature' => 0.3],
+			'body' => json_encode(['model' => $ai['model'], 'messages' => $messages, 'max_tokens' => $ai['max_tokens'], 'reasoning_effort' => 'low', 'temperature' => 0.3],
 				JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-			'headers' => ['Content-Type' => 'application/json', 'Authorization' => $auth],
-			'timeout' => 120,
+			'headers' => $headers,
+			'timeout' => $ai['timeout'],
 		]);
 		$j = json_decode((string)$r->getBody(), true);
 		$answer = Chat::answerOf(is_array($j) ? $j : []);

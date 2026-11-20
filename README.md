@@ -37,7 +37,8 @@ Any watch that writes into Apple Health works. It was built and tested with a **
 - **Infographic** per week, month and year: records, streaks, consistency, activity heatmap, PNG export without identifiers.
 - **Agent**: goals with adaptive weekly targets, an AI plan for next week that is evaluated the week after, nudges,
   correlations computed in code (the AI only narrates them), an **"Ask your data" chat** on aggregates only.
-- **Weekly AI report via n8n** (any OpenAI-compatible model), saved as files in `/Health/Reports` plus a notification.
+- **Weekly AI report**: written by your n8n automation (any OpenAI-compatible model, saved as files in `/Health/Reports`) or, without n8n, by the server with the AI the administrator configured. A notification arrives either way.
+- **For everyone on the server**: an administration page (AI provider and model, limits, groups, defaults) and per-user data.
 - **Private calendar** "Sport & Gesundheit" with one event per workout, dashboard widget, installable **PWA**.
 - Languages: English, German, Italian.
 
@@ -135,13 +136,12 @@ occ app:enable healthcheck
 
 `bin/deploy.sh user@host [container]` does the same for a Nextcloud AIO container over ssh.
 
-### Chat endpoint (optional, admin)
+### Administration settings
 
-```bash
-occ config:app:set healthcheck ai_url   --value=https://<openai-compatible>/v1/chat/completions
-occ config:app:set healthcheck ai_model --value=<model>
-occ config:app:set healthcheck ai_api_key --sensitive --value='Bearer <key>'
-```
+Settings → Administration → **Health Check** (en/de/it): AI on/off, provider (IONOS, OpenAI, Mistral, OpenRouter,
+Ollama or any OpenAI-compatible endpoint), model, write-only API key, connection test, per-feature switches, rate
+limits, who writes the weekly report (your n8n automation, or this server with the configured AI), access by group,
+phone push and webhook switches, default languages. See [docs/INSTALL.md](docs/INSTALL.md#administration-settings).
 
 ## n8n setup
 

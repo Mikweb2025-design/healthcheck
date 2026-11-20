@@ -203,7 +203,10 @@ class DataService {
 			throw new \InvalidArgumentException('question');
 		}
 		$now = $this->time->getTime();
-		if (!Chat::allowed($this->store->chatTimes($uid, $now - 86400), $now)) {
+		if (!$this->settings->aiConfigured() || !$this->settings->adminBool('ai_chat')) {
+			throw new \RuntimeException('ai_not_configured');
+		}
+		if (!Chat::allowed($this->store->chatTimes($uid, $now - 86400), $now, $this->settings->adminInt('ai_per_hour'), $this->settings->adminInt('ai_per_day'))) {
 			throw new \OverflowException('rate_limited');
 		}
 		$rows = $this->store->days($uid);
@@ -264,7 +267,10 @@ class DataService {
 			throw new \InvalidArgumentException('kind');
 		}
 		$now = $this->time->getTime();
-		if (!\OCA\HealthCheck\Domain\Chat::allowed($this->store->chatTimes($uid, $now - 86400), $now)) {
+		if (!$this->settings->aiConfigured() || !$this->settings->adminBool('ai_tasks')) {
+			throw new \RuntimeException('ai_not_configured');
+		}
+		if (!Chat::allowed($this->store->chatTimes($uid, $now - 86400), $now, $this->settings->adminInt('ai_per_hour'), $this->settings->adminInt('ai_per_day'))) {
 			throw new \OverflowException('rate_limited');
 		}
 		$rows = $this->store->days($uid);

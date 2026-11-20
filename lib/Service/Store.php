@@ -299,6 +299,13 @@ class Store {
 		return array_map('intval', $q->executeQuery()->fetchAll(\PDO::FETCH_COLUMN));
 	}
 
+	/** number of AI calls (chat and tasks) of all users since a time; counts only */
+	public function chatCountSince(int $since): int {
+		$q = $this->db->getQueryBuilder();
+		$q->select($q->func()->count('*', 'n'))->from('hc_chat')->where($q->expr()->gt('created_at', $q->createNamedParameter($since, IQueryBuilder::PARAM_INT)));
+		return (int)$q->executeQuery()->fetchOne();
+	}
+
 	public function saveChat(string $uid, string $question, string $answer, string $model, string $status, int $now, string $kind = 'chat'): int {
 		$q = $this->db->getQueryBuilder();
 		$q->insert('hc_chat')->values([

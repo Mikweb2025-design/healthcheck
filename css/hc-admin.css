@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+#hc-admin { max-width: 760px; }
+#hc-admin .hc-adm-card { border: 1px solid var(--color-border, #ddd); border-radius: var(--border-radius-large, 12px); padding: 8px 20px 14px; margin: 14px 0; background: var(--color-main-background, #fff); }
+#hc-admin .hc-adm-card h3 { margin: 12px 0 8px; }
+#hc-admin .hc-adm-row { margin: 10px 0; }
+#hc-admin .hc-adm-row > label { display: block; font-weight: 600; margin-bottom: 4px; }
+#hc-admin .hc-adm-check > label { display: inline; font-weight: normal; margin-left: 6px; }
+#hc-admin input[type=text], #hc-admin input[type=url], #hc-admin input[type=password], #hc-admin input[type=number], #hc-admin select { width: 100%; max-width: 520px; }
+#hc-admin input[type=number] { max-width: 160px; }
+#hc-admin .hc-adm-muted { color: var(--color-text-maxcontrast, #6b6b6b); margin: 4px 0; }
+#hc-admin .hc-adm-groups { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 6px 0; }
+#hc-admin .hc-adm-groups .hc-adm-row { margin: 2px 0; }
+#hc-admin .hc-adm-status { font-weight: 600; }
+#hc-admin .hc-adm-status.ok, #hc-admin .hc-adm-ok { color: var(--color-success-text, #2d7b41); }
+#hc-admin .hc-adm-status.warn { color: var(--color-warning-text, #8a6100); }
+#hc-admin .hc-adm-bad { color: var(--color-error-text, #c62828); }

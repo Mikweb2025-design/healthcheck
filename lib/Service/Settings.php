@@ -8,19 +8,24 @@ declare(strict_types=1);
 namespace OCA\HealthCheck\Service;
 
 use OCA\HealthCheck\AppInfo\Application;
+use OCA\HealthCheck\Domain\AdminConfig;
 use OCA\HealthCheck\Domain\Agent;
 use OCA\HealthCheck\Domain\Messages;
 use OCA\HealthCheck\Domain\Signature;
 use OCP\IAppConfig;
 use OCP\IConfig;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 use OCP\Security\ISecureRandom;
 
-/** Per-user settings (user values of this app) and the few app-wide values (AI endpoint for the chat). */
+/** Per-user settings (user values of this app) and the app-wide administrator values (AI endpoint, limits, access). */
 class Settings {
 	public function __construct(
 		private IConfig $config,
 		private IAppConfig $appConfig,
 		private ISecureRandom $random,
+		private IGroupManager $groups,
+		private IUserManager $users,
 	) {
 	}
 
@@ -45,7 +50,8 @@ class Settings {
 
 	/** @return list<string> */
 	public function activeUsers(): array {
-		return array_values(array_map('strval', $this->config->getUsersForUserValue(Application::APP_ID, 'active', '1')));
+		$all = array_values(array_map('strval', $this->config->getUsersForUserValue(Application::APP_ID, 'active', '1')));
+		return array_values(array_filter($all, fn (string $u) => $this->userAllowed($u)));
 	}
 
 	public function lang(string $uid): string {
@@ -53,13 +59,18 @@ class Settings {
 		if (in_array($own, Messages::LANGS, true)) {
 			return $own;
 		}
-		return Messages::lang((string)$this->config->getUserValue($uid, 'core', 'lang', (string)$this->config->getSystemValue('default_language', 'en')));
+		$core = strtolower(substr((string)$this->config->getUserValue($uid, 'core', 'lang', (string)$this->config->getSystemValue('default_language', '')), 0, 2));
+		return in_array($core, Messages::LANGS, true) ? $core : $this->adminString('default_lang');
 	}
 
 	/** language of the doctor report (own setting, else the app language) */
 	public function reportLang(string $uid): string {
 		$own = $this->get($uid, 'report_lang');
-		return in_array($own, Messages::LANGS, true) ? $own : $this->lang($uid);
+		if (in_array($own, Messages::LANGS, true)) {
+			return $own;
+		}
+		$def = $this->adminString('default_report_lang');
+		return in_array($def, Messages::LANGS, true) ? $def : $this->lang($uid);
 	}
 
 	public function tz(string $uid): string {
@@ -91,7 +102,9 @@ class Settings {
 			'notifyImport' => $this->get($uid, 'notify_import', '1') === '1',
 			'nudges' => $this->get($uid, 'nudges', '1') === '1',
 			'goals' => $this->goals($uid),
-			'chatAvailable' => $this->aiConfigured(),
+			'chatAvailable' => $this->aiConfigured() && $this->adminBool('ai_chat'),
+			'aiTasksAvailable' => $this->aiConfigured() && $this->adminBool('ai_tasks'),
+			'features' => ['ingest' => $this->adminBool('allow_ingest'), 'webhooks' => $this->adminBool('allow_webhooks'), 'reportMode' => $this->adminString('report_mode')],
 			'timezone' => $this->tz($uid),
 		];
 	}
@@ -133,16 +146,50 @@ class Settings {
 		return $s;
 	}
 
-	public function aiConfigured(): bool {
-		return $this->appConfig->getValueString(Application::APP_ID, 'ai_api_key', '') !== '';
+	// ---- app-wide (administrator) values ------------------------------------------------------------------------------
+
+	public function adminBool(string $key): bool {
+		return $this->appConfig->getValueString(Application::APP_ID, $key, AdminConfig::DEFAULTS[$key] ? '1' : '0') === '1';
 	}
 
-	/** @return array{url:string,model:string,key:string} */
+	public function adminInt(string $key): int {
+		return (int)$this->appConfig->getValueString(Application::APP_ID, $key, (string)AdminConfig::DEFAULTS[$key]);
+	}
+
+	public function adminString(string $key): string {
+		return $this->appConfig->getValueString(Application::APP_ID, $key, (string)AdminConfig::DEFAULTS[$key]);
+	}
+
+	/** @return list<string> */
+	public function allowedGroups(): array {
+		$j = json_decode($this->appConfig->getValueString(Application::APP_ID, 'allowed_groups', '[]'), true);
+		return is_array($j) ? array_values(array_map('strval', $j)) : [];
+	}
+
+	/** the administrator may limit the app to groups; the Nextcloud app setting "enable for specific groups" works as well */
+	public function userAllowed(string $uid): bool {
+		$allowed = $this->allowedGroups();
+		if ($allowed === []) {
+			return true;
+		}
+		$u = $this->users->get($uid);
+		return $u !== null && AdminConfig::groupAllowed($allowed, array_values($this->groups->getUserGroupIds($u)));
+	}
+
+	public function aiConfigured(): bool {
+		$ai = $this->ai();
+		return AdminConfig::aiReady($this->adminBool('ai_enabled'), $this->adminString('ai_provider'), $ai['url'], $ai['model'], $ai['key'] !== '');
+	}
+
+	/** @return array{url:string,model:string,key:string,max_tokens:int,timeout:int} */
 	public function ai(): array {
+		$p = AdminConfig::PROVIDERS[$this->adminString('ai_provider')] ?? AdminConfig::PROVIDERS['ionos'];
 		return [
-			'url' => $this->appConfig->getValueString(Application::APP_ID, 'ai_url', 'https://openai.inference.de-txl.ionos.com/v1/chat/completions'),
-			'model' => $this->appConfig->getValueString(Application::APP_ID, 'ai_model', 'openai/gpt-oss-120b'),
+			'url' => $this->appConfig->getValueString(Application::APP_ID, 'ai_url', $p['url']),
+			'model' => $this->appConfig->getValueString(Application::APP_ID, 'ai_model', $p['model']),
 			'key' => $this->appConfig->getValueString(Application::APP_ID, 'ai_api_key', ''),
+			'max_tokens' => $this->adminInt('ai_max_tokens'),
+			'timeout' => $this->adminInt('ai_timeout'),
 		];
 	}
 }

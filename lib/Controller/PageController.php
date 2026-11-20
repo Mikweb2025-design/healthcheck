@@ -58,6 +58,9 @@ class PageController extends Controller {
 	private function page(string $page, string $bodyClass = 'hc-app'): StandalonePageResponse {
 		$user = $this->session->getUser();
 		$uid = $user?->getUID() ?? '';
+		if ($uid !== '' && !$this->settings->userAllowed($uid)) {
+			throw new \OCP\AppFramework\Http\NotFoundException();
+		}
 		if ($uid !== '') {
 			$this->settings->activate($uid);
 		}
