@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Data tab: "Latest data" now shows the newest day from the zip export *or* the daily push (it showed only the export).
+- Daily push: a run (one request per type) is counted as one, with the number of samples per type (steps, kcal, HR, sleep…).
+
 ## 0.4.0 – 2026-11-20
 
 * **Tips for this week** on "Today": up to three plain tips computed from your own data, without AI (rule-based,

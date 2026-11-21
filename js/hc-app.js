@@ -85,6 +85,13 @@
     if (hash === 'ai' || hash === 'hints') { var el = doc.getElementById('hc-' + hash); if (el) { el.scrollIntoView(); } }
   }
 
+  function pushTypes(ty) {
+    var short = { StepCount: 'steps', ActiveEnergyBurned: 'kcal', DistanceWalkingRunning: 'km', FlightsClimbed: 'floors', HeartRate: 'HR', SleepAnalysis: 'sleep', RestingHeartRate: 'RHR' };
+    var parts = [];
+    Object.keys(ty || {}).forEach(function (k) { parts.push((short[k.replace(/^HK\w+Identifier/, '')] || k) + ' ' + ty[k]); });
+    return parts.length ? ' · ' + parts.join(', ') : '';
+  }
+
   function statusBanner(st) {
     if (st.running) { return h('div', { class: 'hc-banner', text: t('import_running') }); }
     if (!st.lastImport) {
@@ -536,11 +543,11 @@
     // data status
     var li = st.lastImport;
     var sBody = [h('div', { class: 'hc-grid4' }, [
-      stat(t('st_last_day'), li ? HC.day(li.lastDay) : '–', st.ageDays !== null ? t('age_days', { n: st.ageDays }) : '', st.stale ? COL.heart : COL.recovery),
+      stat(t('st_last_day'), st.newestDay ? HC.day(st.newestDay) : (li ? HC.day(li.lastDay) : '–'), st.ageDays !== null ? t('age_days', { n: st.ageDays }) : '', st.stale ? COL.heart : COL.recovery),
       stat(t('st_last_import'), li ? HC.dateTime(li.finishedAt) : '–', li ? t('import_meta', { s: HC.num(li.durationMs / 1000, 1), mb: li.peakMb }) : ''),
       stat(t('st_days'), ov.range ? HC.num(ov.range.days, 0) : '–', ov.range ? HC.day(ov.range.from) + ' – ' + HC.day(ov.range.to) : ''),
       stat(t('st_pending'), String(st.pending.length), st.pending.length ? st.pending[0].name : ''),
-      stat(t('st_push'), st.push && st.push.lastAt ? HC.dateTime(st.push.lastAt) : '–', st.push && st.push.lastAt ? t('push_meta', { n: st.push.samples, day: HC.day(st.push.lastDay) }) : (st.push && st.push.tokenSet ? t('push_waiting') : t('push_off')))
+      stat(t('st_push'), st.push && st.push.lastAt ? HC.dateTime(st.push.lastAt) : '–', st.push && st.push.lastAt ? t('push_meta', { n: st.push.samples, day: HC.day(st.push.lastDay) }) + pushTypes(st.push.types) : (st.push && st.push.tokenSet ? t('push_waiting') : t('push_off')))
     ])];
     if (st.stale) { sBody.unshift(h('div', { class: 'hc-banner hc-banner-warn', text: t('stale_title', { days: st.ageDays }) + ' ' + t('stale_text') })); }
     var prog = h('div', { class: 'hc-muted' });

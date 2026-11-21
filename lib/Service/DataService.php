@@ -40,6 +40,7 @@ class DataService {
 			'lastAt' => (int)$this->settings->get($uid, 'ingest_last', '0') ?: null,
 			'lastDay' => $this->settings->get($uid, 'ingest_last_day') ?: null,
 			'samples' => (int)$this->settings->get($uid, 'ingest_last_samples', '0'),
+			'types' => json_decode($this->settings->get($uid, 'ingest_last_types', '{}'), true) ?: new \stdClass(),
 			'tokenSet' => $this->settings->get($uid, 'ingest_token_hash') !== '',
 		];
 		// freshness: whichever channel (zip export or daily push) delivered the newest day

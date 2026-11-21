@@ -64,6 +64,7 @@ class IngestService {
 			'lastSamples' => (int)$this->settings->get($uid, 'ingest_last_samples', '0'),
 			'lastNew' => (int)$this->settings->get($uid, 'ingest_last_new', '0'),
 			'lastDay' => $this->settings->get($uid, 'ingest_last_day') ?: null,
+			'lastTypes' => json_decode($this->settings->get($uid, 'ingest_last_types', '{}'), true) ?: new \stdClass(),
 		];
 	}
 
@@ -115,9 +116,16 @@ class IngestService {
 		}
 		$added = $this->store->addWorkouts($uid, $workouts);
 		$lastDay = $days === [] ? null : array_key_last($days);
+		// the shortcut posts one request per type: pushes within 5 minutes count as one run
+		$sameRun = (int)$this->settings->get($uid, 'ingest_last', '0') > $now - 300;
+		$types = $sameRun ? (json_decode($this->settings->get($uid, 'ingest_last_types', '{}'), true) ?: []) : [];
+		foreach ($samples as $s) {
+			$types[$s['type']] = ($types[$s['type']] ?? 0) + 1;
+		}
+		$this->settings->set($uid, 'ingest_last_types', json_encode($types));
 		$this->settings->set($uid, 'ingest_last', (string)$now);
-		$this->settings->set($uid, 'ingest_last_samples', (string)count($samples));
-		$this->settings->set($uid, 'ingest_last_new', (string)$new);
+		$this->settings->set($uid, 'ingest_last_samples', (string)(($sameRun ? (int)$this->settings->get($uid, 'ingest_last_samples', '0') : 0) + count($samples)));
+		$this->settings->set($uid, 'ingest_last_new', (string)(($sameRun ? (int)$this->settings->get($uid, 'ingest_last_new', '0') : 0) + $new));
 		if ($lastDay !== null) {
 			$this->settings->set($uid, 'ingest_last_day', $lastDay);
 		}
