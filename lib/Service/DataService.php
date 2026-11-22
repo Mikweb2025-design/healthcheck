@@ -44,7 +44,7 @@ class DataService {
 			'tokenSet' => $this->settings->get($uid, 'ingest_token_hash') !== '',
 		];
 		// freshness: whichever channel (zip export or daily push) delivered the newest day
-		$newest = max((string)($last['lastDay'] ?? ''), (string)($push['lastDay'] ?? '')) ?: null;
+		$newest = max((string)($last['lastDay'] ?? ''), (string)($push['lastDay'] ?? ''), (string)$this->store->lastDataDay($uid)) ?: null;
 		$age = ImportService::ageDays($newest, $today);
 		return [
 			'today' => $today,

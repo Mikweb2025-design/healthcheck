@@ -126,7 +126,7 @@ class IngestService {
 		$this->settings->set($uid, 'ingest_last', (string)$now);
 		$this->settings->set($uid, 'ingest_last_samples', (string)(($sameRun ? (int)$this->settings->get($uid, 'ingest_last_samples', '0') : 0) + count($samples)));
 		$this->settings->set($uid, 'ingest_last_new', (string)(($sameRun ? (int)$this->settings->get($uid, 'ingest_last_new', '0') : 0) + $new));
-		if ($lastDay !== null) {
+		if ($lastDay !== null && $lastDay > $this->settings->get($uid, 'ingest_last_day', '')) {
 			$this->settings->set($uid, 'ingest_last_day', $lastDay);
 		}
 		$this->settings->activate($uid);

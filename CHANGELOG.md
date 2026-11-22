@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- "Latest data" uses the newest day stored (it showed the day of the last request of a push, one day behind).
+
 ## 0.4.2
 
 - Charts and cards reload when you return to the app (after 2 minutes), so a push or import shows up without closing the app.
