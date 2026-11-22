@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Charts and cards reload when you return to the app (after 2 minutes), so a push or import shows up without closing the app.
+
 ## 0.4.1
 
 - Data tab: "Latest data" now shows the newest day from the zip export *or* the daily push (it showed only the export).

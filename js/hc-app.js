@@ -66,6 +66,16 @@
     rootEl.appendChild(main);
     root.addEventListener('hashchange', route);
     load().then(route);
+    // the data changes while the app stays open (daily push, import): reload it when the user comes back or after 2 minutes
+    var fresh = Date.now();
+    function refresh() {
+      if (Date.now() - fresh < 120000 || !state.ov) { return; }
+      fresh = Date.now();
+      HC.api('GET', '/api/overview').then(function (ov) { state.ov = ov; route(); }, function () {});
+    }
+    doc.addEventListener('visibilitychange', function () { if (!doc.hidden) { refresh(); } });
+    root.addEventListener('focus', refresh);
+    root.addEventListener('pageshow', refresh);
   }
 
   function load() {
