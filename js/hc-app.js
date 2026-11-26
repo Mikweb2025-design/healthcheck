@@ -112,6 +112,9 @@
     }
     if (st.pending && st.pending.length) { return h('div', { class: 'hc-banner', text: t('pending', { n: st.pending.length }) }); }
     // the shortcut stops at the first Health type without samples: steps arrived, heart rate/sleep did not
+    if (st.push && st.push.badTokenAt) {
+      return h('div', { class: 'hc-banner hc-banner-warn' }, [h('strong', { text: t('push_badtoken_title', { at: HC.dateTime(st.push.badTokenAt) }) }), h('p', { text: t('push_badtoken_text') }), btn(t('go_more'), function () { root.location.hash = '#more'; })]);
+    }
     var ty = (st.push && st.push.types) || {};
     if (ty.steps && !ty.heart_rate) {
       return h('div', { class: 'hc-banner hc-banner-warn' }, [h('strong', { text: t('push_cut_title') }), h('p', { text: t('push_cut_text') })]);

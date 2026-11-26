@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+
+- Warning on the overview when the phone pushed with a wrong or old token (rejected with 401) after the last good push.
+
 ## 0.4.4
 
 - Warning on the overview when the shortcut stopped before heart rate (Apple Health had no heart rate for the last 2 days, so heart rate, sleep and resting heart rate were not sent).

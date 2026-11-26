@@ -44,6 +44,7 @@ class IngestController extends Controller {
 		}
 		$uid = $token === '' ? null : $this->ingest->userOf($token);
 		if ($uid === null) {
+			$this->settings->unauthPush(time());
 			$r = new JSONResponse(['error' => 'unauthorized'], Http::STATUS_UNAUTHORIZED);
 			$r->throttle(['action' => 'hc_ingest']);
 			return $r;

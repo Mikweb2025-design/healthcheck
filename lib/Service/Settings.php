@@ -148,6 +148,15 @@ class Settings {
 
 	// ---- app-wide (administrator) values ------------------------------------------------------------------------------
 
+	/** last push with an unknown token (app-wide timestamp, no token or user stored) */
+	public function unauthPush(?int $ts = null): int {
+		if ($ts !== null) {
+			$this->appConfig->setValueString(Application::APP_ID, 'ingest_unauth_last', (string)$ts);
+			return $ts;
+		}
+		return (int)$this->appConfig->getValueString(Application::APP_ID, 'ingest_unauth_last', '0');
+	}
+
 	public function adminBool(string $key): bool {
 		return $this->appConfig->getValueString(Application::APP_ID, $key, AdminConfig::DEFAULTS[$key] ? '1' : '0') === '1';
 	}

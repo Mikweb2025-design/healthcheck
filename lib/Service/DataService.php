@@ -43,6 +43,9 @@ class DataService {
 			'types' => json_decode($this->settings->get($uid, 'ingest_last_types', '{}'), true) ?: new \stdClass(),
 			'tokenSet' => $this->settings->get($uid, 'ingest_token_hash') !== '',
 		];
+		// a push with a wrong token after the last good one: the shortcut holds an old or mistyped token
+		$bad = $this->settings->unauthPush();
+		$push['badTokenAt'] = $push['tokenSet'] && $bad > (int)$push['lastAt'] ? $bad : null;
 		// freshness: whichever channel (zip export or daily push) delivered the newest day
 		$newest = max((string)($last['lastDay'] ?? ''), (string)($push['lastDay'] ?? ''), (string)$this->store->lastDataDay($uid)) ?: null;
 		$age = ImportService::ageDays($newest, $today);
