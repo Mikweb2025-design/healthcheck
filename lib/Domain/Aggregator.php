@@ -11,7 +11,8 @@ namespace OCA\HealthCheck\Domain;
  * Collects single Apple Health records into one row per day. Pure (no Nextcloud), fed by HealthParser.
  *
  * - Every metric is first kept per day AND per source; finish() then takes, per day and metric, the most preferred
- *   source that has data (Sources::priority). That avoids double counting watch + phone steps.
+ *   source that has data (Sources::priority). Sums (steps, distance, kcal, floors) take per hour the source with the
+ *   most and add the hours: no double counting of watch + phone, and a late watch sync does not hide the phone's hours.
  * - Sleep: a segment belongs to the night that ends on the wake-up day (segment start + 6 h, local time), overlapping
  *   segments of one stage are merged, only one source per night is used.
  * - Workouts: duplicates (same activity, start within 2 minutes) from several sources are collapsed.
@@ -121,7 +122,7 @@ final class Aggregator {
 		$a = &$this->q[$day][$col][$source];
 		if ($a === null) {
 			$a = match ($mode) {
-				'sum' => [0.0],
+				'sum' => [0.0, []],
 				'avg' => [0.0, 0, INF],
 				'last' => ['', 0.0],
 				default => [INF, -INF, 0.0, 0],
@@ -130,6 +131,8 @@ final class Aggregator {
 		switch ($mode) {
 			case 'sum':
 				$a[0] += $v;
+				$h = substr($start, 11, 2);
+				$a[1][$h] = ($a[1][$h] ?? 0.0) + $v;
 				break;
 			case 'avg':
 				$a[0] += $v;
@@ -267,7 +270,15 @@ final class Aggregator {
 				$srcCount[$src] = ($srcCount[$src] ?? 0) + 1;
 				$mode = self::modeOf($col);
 				if ($mode === 'sum') {
-					$row[$col] = (int)round($a[0]);
+					// per hour the source with the most, summed over the day: no watch+phone double count, and when the
+					// watch has not synced the rest of the day yet the phone's hours still count
+					$hours = [];
+					foreach ($bySource as $b) {
+						foreach ($b[1] as $h => $v) {
+							$hours[$h] = max($hours[$h] ?? 0.0, $v);
+						}
+					}
+					$row[$col] = (int)round(array_sum($hours));
 				} elseif ($mode === 'avg') {
 					if ($col === 'spo2') {
 						$row['spo2_avg'] = round($a[0] / $a[1], 4);

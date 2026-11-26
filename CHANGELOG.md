@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.6
+
+- Steps, distance, calories and floors: per hour the source with the most, summed over the day. A watch that has not synced the rest of the day no longer hides the phone's steps (today stuck at the early-morning value).
+
 ## 0.4.5
 
 - Warning on the overview when the phone pushed with a wrong or old token (rejected with 401) after the last good push.

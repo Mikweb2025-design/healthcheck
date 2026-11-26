@@ -16,6 +16,17 @@ class IngestTest extends TestCase {
 		return new \DateTimeZone('Europe/Berlin');
 	}
 
+	public function testStepsPerHourBestSource(): void {
+		$a = new Aggregator('Europe/Berlin');
+		$t = 'HKQuantityTypeIdentifierStepCount';
+		// watch synced only until 05:00, the phone counted the whole morning; at 05 both counted the same walk
+		$a->record($t, 'HUAWEI Health', 'count', '2026-11-26 05:10:00 +0100', '2026-11-26 05:20:00 +0100', '500');
+		$a->record($t, 'iPhone', 'count', '2026-11-26 05:10:00 +0100', '2026-11-26 05:20:00 +0100', '300');
+		$a->record($t, 'iPhone', 'count', '2026-11-26 09:00:00 +0100', '2026-11-26 09:30:00 +0100', '2000');
+		$a->record($t, 'iPhone', 'count', '2026-11-26 13:00:00 +0100', '2026-11-26 13:30:00 +0100', '1500');
+		$this->assertSame(4000, $a->days()['2026-11-26']['steps']);
+	}
+
 	public function testNumbers(): void {
 		$this->assertSame(62.5, Ingest::number('62,5'));
 		$this->assertSame(1234.5, Ingest::number('1.234,5'));
