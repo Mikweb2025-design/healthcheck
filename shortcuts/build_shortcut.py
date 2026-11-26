@@ -22,8 +22,11 @@ TYPES = [
     # export or manual entry. Each type is POSTed right after it was read and the most reliable types come first: if a
     # later type is ever empty, everything before it has already arrived.
     ("steps", "Steps"), ("active_energy", "Active Calories"), ("distance", "Walking + Running Distance"), ("flights", "Flights Climbed"),
-    ("heart_rate", "Heart Rate"), ("sleep", "Sleep"), ("resting_hr", "Resting Heart Rate"),
+    # sleep and resting heart rate before heart rate: heart rate is the biggest list and was the one missing in Health.
+    ("sleep", "Sleep"), ("resting_hr", "Resting Heart Rate"), ("heart_rate", "Heart Rate"),
 ]
+# days read per type: the watch data reaches Apple Health with a delay, a wider window avoids an empty (= blocking) search
+DAYS = {"sleep": "3", "resting_hr": "7", "heart_rate": "3"}
 DETAILS = [("values", "Value"), ("units", "Unit"), ("starts", "Start Date"), ("ends", "End Date"), ("sources", "Source")]
 
 
@@ -86,7 +89,7 @@ for key, hk in TYPES:
         "WFContentItemFilter": {"Value": {"WFActionParameterFilterPrefix": 1, "WFContentPredicateBoundedDate": False, "WFActionParameterFilterTemplates": [
             {"Bounded": True, "Property": "Type", "Operator": 4, "Removable": False,
              "Values": {"Enumeration": {"Value": hk, "WFSerializationType": "WFStringSubstitutableState"}}},
-            {"Bounded": True, "Property": "Start Date", "Operator": 1001, "Removable": True, "Values": {"Number": "2", "Unit": 16}},
+            {"Bounded": True, "Property": "Start Date", "Operator": 1001, "Removable": True, "Values": {"Number": DAYS.get(key, "2"), "Unit": 16}},
         ]}, "WFSerializationType": "WFContentPredicateTableTemplate"},
         "WFContentItemSortProperty": "Start Date", "WFContentItemSortOrder": "Oldest First", "WFContentItemLimitEnabled": False,
         "CustomOutputName": "Samples " + key,

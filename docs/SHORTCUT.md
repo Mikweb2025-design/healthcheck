@@ -9,16 +9,16 @@ A web app cannot read HealthKit, so the daily push uses Apple Shortcuts, which s
 2. Tap **Install shortcut** (or download `shortcuts/Health-Check-Invio.shortcut` from this repository). On import it asks
    for two things: the address of your Nextcloud and the token.
 3. Run the shortcut once by hand and allow access to Health.
-4. Shortcuts → **Automation** → **+** → **Alarm** → *When my alarm is stopped* → **Run Immediately** → choose the
-   shortcut.
+4. Shortcuts → **Automation** → **+** → **Time of Day** → 07:00, **Daily** → **Run Immediately** → choose the shortcut.
+5. Repeat with **Time of Day** 23:00, so the full day and the night arrive.
 
-iOS does not release Health data while the phone is locked. The alarm trigger works well because the phone is usually
-unlocked right after. If a run fails, add a second automation when you open an app you use every morning.
+iOS does not release Health data while the phone is locked: a run with the phone locked may find nothing. The next run
+(or a manual tap) catches up, duplicates are recognised.
 
 ## What is sent
 
-The last 48 hours of steps, active calories, walking + running distance, floors, heart rate, sleep analysis (all stages) and
-resting heart rate, as JSON to `POST /apps/healthcheck/api/ingest` with the header `X-HC-Token`.
+The last 48 hours of steps, active calories, walking + running distance and floors, plus sleep analysis (all stages) and
+heart rate (3 days) and resting heart rate (7 days), as JSON to `POST /apps/healthcheck/api/ingest` with the header `X-HC-Token`.
 
 Find Health Samples stops the whole shortcut with an alert ("No measurements found") when a type has no sample in the
 period. So the shortcut sends **each type right after reading it**, most reliable types first: a missing type never blocks

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4
+
+- Warning on the overview when the shortcut stopped before heart rate (Apple Health had no heart rate for the last 2 days, so heart rate, sleep and resting heart rate were not sent).
+- Shortcut: sleep and resting heart rate are read before heart rate, with a wider window (3/7/3 days), so a late watch sync no longer blocks them.
+- Setup guide: automations at 07:00 and 23:00 (Time of Day) instead of the alarm.
+
 ## 0.4.3
 
 - "Latest data" uses the newest day stored (it showed the day of the last request of a push, one day behind).

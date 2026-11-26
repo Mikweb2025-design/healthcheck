@@ -111,6 +111,11 @@
       return h('div', { class: 'hc-banner hc-banner-warn' }, [h('strong', { text: t('stale_title', { days: st.ageDays }) }), h('p', { text: t('stale_text') }), btn(t('upload'), function () { root.location.hash = '#more'; })]);
     }
     if (st.pending && st.pending.length) { return h('div', { class: 'hc-banner', text: t('pending', { n: st.pending.length }) }); }
+    // the shortcut stops at the first Health type without samples: steps arrived, heart rate/sleep did not
+    var ty = (st.push && st.push.types) || {};
+    if (ty.steps && !ty.heart_rate) {
+      return h('div', { class: 'hc-banner hc-banner-warn' }, [h('strong', { text: t('push_cut_title') }), h('p', { text: t('push_cut_text') })]);
+    }
     return null;
   }
 
